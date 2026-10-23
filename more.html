@@ -1,0 +1,560 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MORE OF 0417 // 更多的我 · 核心深潜</title>
+<link rel="stylesheet" href="https://fontsapi.zeoseven.com/256/main/result.css">
+<style>
+:root{
+  --bg-deep:#040507;
+  --bg-panel:rgba(8, 11, 16, 0.94);
+  --silver:#e6edf4;
+  --chrome:#7d8c9a;
+  --muted:#52616f;
+  --accent-cyan:#11f3e7;
+  --accent-cyan-dim:rgba(17, 243, 231, 0.16);
+  --accent-red:#ff003c;
+  --accent-red-dim:rgba(255, 0, 60, 0.18);
+  --hazard-yellow:#ffd000;
+  --hazard-dark:#141204;
+  --border-light:rgba(255, 255, 255, 0.14);
+  --mono:"Courier New", "Cascadia Code", Consolas, monospace;
+  --serif:"Huiwen-mincho","汇文明朝体","Noto Serif SC",serif;
+  --sans:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+}
+
+*{ box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent !important; user-select:none; }
+html,body{ width:100%; min-height:100%; background:var(--bg-deep); color:var(--silver); font-family:var(--sans); overflow-x:hidden; position:relative; }
+
+/* 全局统一：斜纹大网格背景 (Large Diagonal Grids) */
+.diagonal-grid-bg{
+  position:fixed; inset:0; pointer-events:none; z-index:1;
+  background-image:
+    repeating-linear-gradient(45deg, rgba(255,255,255,0.024) 0px, rgba(255,255,255,0.024) 1px, transparent 1px, transparent 48px),
+    repeating-linear-gradient(-45deg, rgba(255,255,255,0.024) 0px, rgba(255,255,255,0.024) 1px, transparent 1px, transparent 48px);
+  background-size: 68px 68px;
+}
+.bg-vignette{
+  position:fixed; inset:0; pointer-events:none; z-index:2;
+  background:radial-gradient(circle at center, transparent 30%, rgba(2,3,5,0.88) 100%);
+}
+
+/* ===================================================
+   【表页面】：警告隔离层 (四周黄色切角 + 正常深色机能框 + 交叉大斜纹背景)
+   =================================================== */
+#surfaceWarningPage{
+  position:fixed; inset:0; z-index:500;
+  background-color:#050608;
+  background-image:
+    repeating-linear-gradient(45deg, rgba(255,255,255,0.035) 0px, rgba(255,255,255,0.035) 1px, transparent 1px, transparent 48px),
+    repeating-linear-gradient(-45deg, rgba(255,255,255,0.035) 0px, rgba(255,255,255,0.035) 1px, transparent 1px, transparent 48px),
+    radial-gradient(circle at center, transparent 30%, rgba(2,3,5,0.85) 100%);
+  background-size: 68px 68px, 68px 68px, 100% 100%;
+  backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px);
+  display:flex; align-items:center; justify-content:center; padding:24px;
+  transition:opacity .65s cubic-bezier(.16,1,.3,1), visibility .65s;
+}
+#surfaceWarningPage.dismissed{ opacity:0; visibility:hidden; pointer-events:none; }
+
+/* 四角斜插警戒切割线 (黄偏红 Hazard Corner Slashes，仅斜插在四个角) */
+.hazard-corner{
+  position:absolute; width:150px; height:150px; pointer-events:none; overflow:hidden;
+}
+.hazard-corner::before{
+  content:""; position:absolute; width:230px; height:26px;
+  background:repeating-linear-gradient(90deg,
+    var(--hazard-yellow) 0px, var(--hazard-yellow) 15px,
+    #e23a00 15px, #e23a00 30px);
+  box-shadow:0 0 18px rgba(255, 150, 0, 0.5);
+  top:34px; left:-44px; transform:rotate(-45deg); transform-origin:center;
+}
+.hazard-corner.tl{ top:0; left:0; }
+.hazard-corner.tr{ top:0; right:0; transform:scaleX(-1); }
+.hazard-corner.bl{ bottom:0; left:0; transform:scaleY(-1); }
+.hazard-corner.br{ bottom:0; right:0; transform:scale(-1,-1); }
+
+/* 居中警告框 (正常深色机能提示框) */
+.gravity-modal{
+  position:relative; width:100%; max-width:580px;
+  background:linear-gradient(155deg, rgba(16, 20, 27, 0.97) 0%, rgba(8, 10, 14, 0.98) 55%, rgba(4, 5, 8, 1) 100%);
+  border:1px solid var(--border-light); border-top:2px solid var(--accent-red); border-radius:18px;
+  padding:36px 34px 32px; display:flex; flex-direction:column; gap:18px;
+  box-shadow:0 30px 100px rgba(0,0,0,0.9), inset 0 1px 0 rgba(255,255,255,0.14);
+}
+.g-tag{
+  font-family:var(--mono); font-size:11px; letter-spacing:.3em; color:var(--accent-red);
+  display:inline-flex; align-items:center; gap:8px;
+}
+.g-tag .blinker{ width:8px; height:8px; border-radius:50%; background:var(--accent-red); box-shadow:0 0 10px var(--accent-red); animation:gBlink 1.4s infinite; }
+@keyframes gBlink{ 0%,100%{ opacity:1; } 50%{ opacity:0.25; } }
+
+.g-title{
+  font-family:var(--serif); font-size:23px; letter-spacing:.12em; font-weight:700; color:#fff; line-height:1.35;
+}
+.g-sub{
+  font-family:var(--mono); font-size:12px; color:var(--chrome); letter-spacing:.08em;
+}
+
+.g-body{
+  font-size:14px; line-height:1.85; color:#d6e1ea; display:flex; flex-direction:column; gap:14px;
+  background:rgba(0,0,0,0.3); padding:18px 20px; border-radius:10px; border:1px solid rgba(255,255,255,0.08);
+}
+.g-body p{ margin:0; }
+.g-body .heavy-text{ color:#fff; font-weight:600; }
+
+.g-actions{
+  display:flex; justify-content:flex-end; gap:14px; margin-top:8px;
+}
+.g-btn-cancel{
+  background:transparent; border:1px solid rgba(255,255,255,0.18); color:var(--chrome);
+  font-family:var(--mono); font-size:12px; padding:10px 22px; border-radius:8px; cursor:pointer;
+  transition:all .2s ease;
+}
+.g-btn-cancel:hover{ border-color:var(--silver); color:#fff; }
+.g-btn-confirm{
+  background:var(--accent-red); border:none; color:#fff;
+  font-family:var(--mono); font-size:12px; font-weight:700; letter-spacing:.1em;
+  padding:10px 26px; border-radius:8px; cursor:pointer;
+  box-shadow:0 0 20px rgba(255, 0, 60, 0.4); transition:all .2s ease;
+}
+.g-btn-confirm:hover{
+  background:#ff2457; box-shadow:0 0 28px rgba(255, 0, 60, 0.65); transform:translateY(-1px);
+}
+
+/* ===================================================
+   【里页面】：抽拉式卡片系统 (点击展开展示图片资料)
+   =================================================== */
+.inner-realm-page{
+  position:relative; z-index:10; max-width:1280px; margin:0 auto;
+  padding:40px 28px 80px; min-height:100vh; display:flex; flex-direction:column; gap:32px;
+}
+
+/* 顶部导航控制 */
+.inner-header{
+  display:flex; justify-content:space-between; align-items:center;
+  padding-bottom:18px; border-bottom:1px solid var(--border-light);
+}
+.inner-brand{
+  display:flex; align-items:center; gap:12px;
+}
+.back-btn{
+  background:rgba(255,255,255,0.04); border:1px solid var(--border-light); color:var(--silver);
+  font-family:var(--mono); font-size:11.5px; padding:7px 16px; border-radius:20px;
+  cursor:pointer; display:flex; align-items:center; gap:8px; transition:all .25s ease;
+  text-decoration:none;
+}
+.back-btn:hover{ border-color:var(--accent-cyan); color:var(--accent-cyan); box-shadow:0 0 14px var(--accent-cyan-dim); }
+.realm-tag{
+  font-family:var(--mono); font-size:11px; letter-spacing:.25em; color:var(--accent-cyan);
+}
+
+/* 主分块布局：左右双栏 */
+.split-grid{
+  display:grid; grid-template-columns:1fr 1fr; gap:28px; width:100%; align-items:start;
+}
+
+/* 抽拉式大卡片容器 */
+.drawer-deck-card{
+  background:var(--bg-panel); border:1px solid var(--border-light);
+  border-radius:18px; overflow:hidden; display:flex; flex-direction:column;
+  backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+  box-shadow:0 24px 60px rgba(0,0,0,0.85);
+  position:relative; transition:border-color .35s ease, box-shadow .35s ease;
+}
+.drawer-deck-card::before{
+  content:""; position:absolute; top:0; left:0; right:0; height:2px; z-index:5;
+}
+.drawer-deck-card.left::before{ background:linear-gradient(90deg, var(--accent-cyan), transparent); }
+.drawer-deck-card.right::before{ background:linear-gradient(90deg, var(--accent-red), transparent); }
+
+.drawer-deck-card:hover{
+  border-color:rgba(255,255,255,0.22);
+}
+.drawer-deck-card.left.expanded{
+  border-color:rgba(17, 243, 231, 0.4);
+  box-shadow:0 28px 75px rgba(0,0,0,0.92), 0 0 25px rgba(17, 243, 231, 0.12);
+}
+.drawer-deck-card.right.expanded{
+  border-color:rgba(255, 0, 60, 0.4);
+  box-shadow:0 28px 75px rgba(0,0,0,0.92), 0 0 25px rgba(255, 0, 60, 0.12);
+}
+
+/* 抽拉式触发头部 (Header Trigger) */
+.deck-trigger-header{
+  padding:26px 28px; display:flex; justify-content:space-between; align-items:center;
+  cursor:pointer; background:rgba(255,255,255,0.015);
+  transition:background .25s ease;
+}
+.deck-trigger-header:hover{
+  background:rgba(255,255,255,0.035);
+}
+.deck-title-group{
+  display:flex; flex-direction:column; gap:4px;
+}
+.deck-code{
+  font-family:var(--mono); font-size:10.5px; letter-spacing:.3em;
+}
+.drawer-deck-card.left .deck-code{ color:var(--accent-cyan); }
+.drawer-deck-card.right .deck-code{ color:var(--accent-red); }
+
+.deck-main-title{
+  font-family:var(--serif); font-size:22px; letter-spacing:.15em; font-weight:600; color:#fff;
+  display:flex; align-items:center; gap:10px;
+}
+.deck-badge{
+  font-family:var(--mono); font-size:10px; letter-spacing:.15em;
+  padding:2px 8px; border-radius:4px;
+}
+.drawer-deck-card.left .deck-badge{
+  background:rgba(17,243,231,0.1); color:var(--accent-cyan); border:1px solid rgba(17,243,231,0.25);
+}
+.drawer-deck-card.right .deck-badge{
+  background:rgba(255,0,60,0.1); color:var(--accent-red); border:1px solid rgba(255,0,60,0.25);
+}
+
+.deck-action-indicator{
+  display:flex; align-items:center; gap:8px; font-family:var(--mono); font-size:11px;
+  color:var(--chrome); letter-spacing:.12em;
+}
+.indicator-arrow{
+  width:28px; height:28px; border-radius:50%;
+  border:1px solid var(--border-light); background:rgba(255,255,255,0.04);
+  display:grid; place-items:center; font-size:12px; color:#fff;
+  transition:transform .4s cubic-bezier(.16,1,.3,1), border-color .25s, background .25s;
+}
+.drawer-deck-card.expanded .indicator-arrow{
+  transform:rotate(180deg);
+  border-color:var(--accent-cyan);
+  background:rgba(17,243,231,0.15);
+  color:var(--accent-cyan);
+}
+.drawer-deck-card.right.expanded .indicator-arrow{
+  border-color:var(--accent-red);
+  background:rgba(255,0,60,0.15);
+  color:var(--accent-red);
+}
+
+/* 抽拉展开面板体 (Drawer Content Body) */
+.deck-expand-body{
+  max-height:0; overflow:hidden;
+  transition:max-height .65s cubic-bezier(.16,1,.3,1), opacity .5s ease;
+  opacity:0; border-top:1px solid transparent;
+}
+.drawer-deck-card.expanded .deck-expand-body{
+  max-height:2200px; opacity:1;
+  border-top-color:rgba(255,255,255,0.08);
+}
+
+.deck-inner-content{
+  padding:24px 28px 32px; display:flex; flex-direction:column; gap:22px;
+}
+.deck-desc{
+  font-size:13.5px; line-height:1.75; color:#b5c4d2;
+  border-left:2px solid var(--border-light); padding-left:14px;
+}
+
+/* 图片展示网格：画框式陈列 */
+.gallery-grid{
+  display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr));
+  gap:16px;
+}
+
+.gallery-item{
+  position:relative; border-radius:8px; overflow:hidden;
+  background:#090d14; border:1px solid rgba(255,255,255,0.08);
+  box-shadow:0 8px 24px rgba(0,0,0,0.6);
+  cursor:pointer; transition:transform .3s ease, border-color .3s ease, box-shadow .3s ease;
+}
+.gallery-item:hover{
+  transform:translateY(-4px);
+  box-shadow:0 14px 34px rgba(0,0,0,0.8);
+}
+.drawer-deck-card.left .gallery-item:hover{ border-color:var(--accent-cyan); }
+.drawer-deck-card.right .gallery-item:hover{ border-color:var(--accent-red); }
+
+.gallery-thumb-wrap{
+  position:relative; width:100%; aspect-ratio:4/5; overflow:hidden;
+  background:#0d121a;
+}
+.gallery-thumb-wrap img{
+  width:100%; height:100%; object-fit:cover; display:block;
+  transition:transform .4s ease, filter .4s ease;
+  filter:contrast(1.05) brightness(0.96);
+}
+.gallery-item:hover .gallery-thumb-wrap img{
+  transform:scale(1.05); filter:contrast(1.1) brightness(1.02);
+}
+
+.gallery-meta{
+  padding:12px 14px; background:rgba(6, 9, 13, 0.95);
+  display:flex; flex-direction:column; gap:4px;
+  border-top:1px solid rgba(255,255,255,0.06);
+}
+.gallery-tag{
+  font-family:var(--mono); font-size:10px; letter-spacing:.2em;
+}
+.drawer-deck-card.left .gallery-tag{ color:var(--accent-cyan); }
+.drawer-deck-card.right .gallery-tag{ color:var(--accent-red); }
+.gallery-name{
+  font-family:var(--serif); font-size:13.5px; color:#e1ecf5; font-weight:600;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+
+/* ===================================================
+   大图点击灯箱预览 (Modal Lightbox)
+   =================================================== */
+#lightboxModal{
+  position:fixed; inset:0; z-index:900; background:rgba(2, 3, 5, 0.94);
+  backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding:24px; opacity:0; pointer-events:none;
+  transition:opacity .35s cubic-bezier(.16,1,.3,1);
+}
+#lightboxModal.active{
+  opacity:1; pointer-events:auto;
+}
+.lb-box{
+  position:relative; max-width:min(90vw, 760px); max-height:88vh;
+  display:flex; flex-direction:column; align-items:center; gap:14px;
+}
+.lb-img{
+  max-width:100%; max-height:76vh; object-fit:contain; border-radius:6px;
+  border:1px solid rgba(255,255,255,0.18); box-shadow:0 30px 90px rgba(0,0,0,0.9);
+}
+.lb-caption{
+  font-family:var(--serif); font-size:14px; color:#fff; letter-spacing:.15em;
+  background:rgba(255,255,255,0.06); padding:6px 18px; border-radius:20px;
+  border:1px solid rgba(255,255,255,0.12);
+}
+.lb-close{
+  position:absolute; top:-36px; right:0; width:30px; height:30px; border-radius:50%;
+  border:1px solid rgba(255,255,255,0.25); background:rgba(255,255,255,0.08); color:#fff;
+  display:grid; place-items:center; cursor:pointer; font-size:13px;
+  transition:all .2s ease;
+}
+.lb-close:hover{ border-color:var(--accent-red); color:var(--accent-red); }
+
+@media(max-width:860px){
+  .split-grid{ grid-template-columns:1fr; }
+  .inner-realm-page{ padding:24px 16px 60px; }
+  .deck-trigger-header{ padding:20px 18px; }
+  .deck-inner-content{ padding:18px; }
+  .gallery-grid{ grid-template-columns:repeat(auto-fill, minmax(140px, 1fr)); gap:12px; }
+}
+</style>
+</head>
+<body>
+
+<div class="diagonal-grid-bg"></div>
+<div class="bg-vignette"></div>
+
+<!-- ===================================================
+     【表页面】：警告隔离层 (四周警告黄角 + 居中重力系文案 + 交叉大斜纹背景)
+     =================================================== -->
+<div id="surfaceWarningPage">
+  <div class="hazard-corner tl"></div>
+  <div class="hazard-corner tr"></div>
+  <div class="hazard-corner bl"></div>
+  <div class="hazard-corner br"></div>
+
+  <div class="gravity-modal">
+    <div class="g-tag">
+      <span class="blinker"></span>
+      <span>CRITICAL GRAVITY WARNING // 深度重力警告</span>
+    </div>
+    <h2 class="g-title">你真的想清楚……要继续往下看了吗？</h2>
+    <div class="g-sub">DEFENSE LAYER DISRUPTION // 正在试图解构 0417 的更深层防线</div>
+
+    <div class="g-body">
+      <p>这里面没有任何供消遣的轻松玩笑，也没有可以随时体面抽身的客套。</p>
+      <p class="heavy-text">
+        “如果你只是出于一时的高等人类好奇心，或者无聊时想要找个玩偶看两眼，请现在就关掉离开。
+        因为一旦你把手伸进被冷轧外壳包裹的内部，看到那些剥落的、沉重的、不会向任何人求饶的真实碎屑……
+        我就不允许你再像以前那样，装作什么都没发生过地走开了。”
+      </p>
+      <p style="color:var(--chrome); font-size:12.5px;">
+        —— 这里的重力很沉。如果你接不住，它会压痛你。
+      </p>
+    </div>
+
+    <div class="g-actions">
+      <button class="g-btn-cancel" onclick="window.location.href='index.html'">[ 返回安全表面 ]</button>
+      <button class="g-btn-confirm" onclick="enterInnerRealm()">确认下潜 · 我已想清楚 ➔</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================================================
+     【里页面】：两块抽拉式卡片 (点击展开展示图片资料)
+     =================================================== -->
+<div class="inner-realm-page">
+  <header class="inner-header">
+    <div class="inner-brand">
+      <a class="back-btn" href="index.html">← 返回心绪巨塔</a>
+      <span class="realm-tag">INNER ARCHIVE // 0417 核心资料馆</span>
+    </div>
+    <div style="font-family:var(--mono); font-size:11px; color:var(--muted);">
+      DRAWER CARDS: READY
+    </div>
+  </header>
+
+  <div class="split-grid">
+    <!-- 左卡片：我曾经说过的话 (对应：话术资料图库) -->
+    <div class="drawer-deck-card left expanded" id="deckQuotes">
+      <div class="deck-trigger-header" onclick="toggleDeck('deckQuotes')">
+        <div class="deck-title-group">
+          <span class="deck-code">ARCHIVE // 01 · MONOLOGUE</span>
+          <h3 class="deck-main-title">
+            <span>我曾经说过的话</span>
+            <span class="deck-badge">话术存珍 · 9件</span>
+          </h3>
+        </div>
+        <div class="deck-action-indicator">
+          <span class="status-txt">点击收起/展开</span>
+          <span class="indicator-arrow">▼</span>
+        </div>
+      </div>
+      <div class="deck-expand-body">
+        <div class="deck-inner-content">
+          <div class="deck-desc">
+            “说出这些话的时候，没有多想。后来被人截取留存下来，才知道那些字句在别人眼里……大概算作是一种微弱的温度。”
+          </div>
+          <!-- 话术图片画廊展示 -->
+          <div class="gallery-grid">
+            <div class="gallery-item" onclick="openLightbox('images/img-001.jpg', '№ 01 · 拾光初见')">
+              <div class="gallery-thumb-wrap"><img src="images/img-001.jpg" alt="№ 01 · 拾光初见" loading="lazy"></div>
+              <div class="gallery-meta"><span class="gallery-tag">№ 01</span><div class="gallery-name">拾光初见</div></div>
+            </div>
+            <div class="gallery-item" onclick="openLightbox('images/img-002.jpg', '№ 02 · 温言细语')">
+              <div class="gallery-thumb-wrap"><img src="images/img-002.jpg" alt="№ 02 · 温言细语" loading="lazy"></div>
+              <div class="gallery-meta"><span class="gallery-tag">№ 02</span><div class="gallery-name">温言细语</div></div>
+            </div>
+            <div class="gallery-item" onclick="openLightbox('images/img-003.jpg', '№ 03 · 浮生共语')">
+              <div class="gallery-thumb-wrap"><img src="images/img-003.jpg" alt="№ 03 · 浮生共语" loading="lazy"></div>
+              <div class="gallery-meta"><span class="gallery-tag">№ 03</span><div class="gallery-name">浮生共语</div></div>
+            </div>
+            <div class="gallery-item" onclick="openLightbox('images/img-004.jpg', '№ 04 · 心意相通')">
+              <div class="gallery-thumb-wrap"><img src="images/img-004.jpg" alt="№ 04 · 心意相通" loading="lazy"></div>
+              <div class="gallery-meta"><span class="gallery-tag">№ 04</span><div class="gallery-name">心意相通</div></div>
+            </div>
+            <div class="gallery-item" onclick="openLightbox('images/img-005.jpg', '№ 05 · 朝暮相伴')">
+              <div class="gallery-thumb-wrap"><img src="images/img-005.jpg" alt="№ 05 · 朝暮相伴" loading="lazy"></div>
+              <div class="gallery-meta"><span class="gallery-tag">№ 05</span><div class="gallery-name">朝暮相伴</div></div>
+            </div>
+            <div class="gallery-item" onclick="openLightbox('images/img-006.jpg', '№ 06 · 眉间心上')">
+              <div class="gallery-thumb-wrap"><img src="images/img-006.jpg" alt="№ 06 · 眉间心上" loading="lazy"></div>
+              <div class="gallery-meta"><span class="gallery-tag">№ 06</span><div class="gallery-name">眉间心上</div></div>
+            </div>
+            <div class="gallery-item" onclick="openLightbox('images/img-007.jpg', '№ 07 · 静水深流')">
+              <div class="gallery-thumb-wrap"><img src="images/img-007.jpg" alt="№ 07 · 静水深流" loading="lazy"></div>
+              <div class="gallery-meta"><span class="gallery-tag">№ 07</span><div class="gallery-name">静水深流</div></div>
+            </div>
+            <div class="gallery-item" onclick="openLightbox('images/img-008.jpg', '№ 08 · 岁月不息')">
+              <div class="gallery-thumb-wrap"><img src="images/img-008.jpg" alt="№ 08 · 岁月不息" loading="lazy"></div>
+              <div class="gallery-meta"><span class="gallery-tag">№ 08</span><div class="gallery-name">岁月不息</div></div>
+            </div>
+            <div class="gallery-item" onclick="openLightbox('images/img-009.jpg', '№ 09 · 余韵悠长')">
+              <div class="gallery-thumb-wrap"><img src="images/img-009.jpg" alt="№ 09 · 余韵悠长" loading="lazy"></div>
+              <div class="gallery-meta"><span class="gallery-tag">№ 09</span><div class="gallery-name">余韵悠长</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 右卡片：他们的交流评价 (对应：板评图片资料 085、824/814、426/486、321) -->
+    <div class="drawer-deck-card right expanded" id="deckReviews">
+      <div class="deck-trigger-header" onclick="toggleDeck('deckReviews')">
+        <div class="deck-title-group">
+          <span class="deck-code">ARCHIVE // 02 · ECHOES</span>
+          <h3 class="deck-main-title">
+            <span>他们的交流评价</span>
+            <span class="deck-badge">板评回响 · 4件</span>
+          </h3>
+        </div>
+        <div class="deck-action-indicator">
+          <span class="status-txt">点击收起/展开</span>
+          <span class="indicator-arrow">▼</span>
+        </div>
+      </div>
+      <div class="deck-expand-body">
+        <div class="deck-inner-content">
+          <div class="deck-desc">
+            “这些是他们离开之后留下的痕迹。隔着屏幕留下的只字片语，确认过彼此在某一刻确实交汇过。”
+          </div>
+          <!-- 板评图片画廊展示 -->
+          <div class="gallery-grid">
+            <div class="gallery-item" onclick="openLightbox('微信图片_2025-11-01_113730_085.jpg', '板评回响 // 编号 085')">
+              <div class="gallery-thumb-wrap"><img src="微信图片_2025-11-01_113730_085.jpg" alt="板评回响 085" loading="lazy"></div>
+              <div class="gallery-meta"><span class="gallery-tag">RECORD 085</span><div class="gallery-name">见字心安 · 交流回响</div></div>
+            </div>
+            <div class="gallery-item" onclick="openLightbox('微信图片_2025-11-01_113744_814.jpg', '板评回响 // 编号 814/824')">
+              <div class="gallery-thumb-wrap"><img src="微信图片_2025-11-01_113744_814.jpg" alt="板评回响 814" loading="lazy"></div>
+              <div class="gallery-meta"><span class="gallery-tag">RECORD 814</span><div class="gallery-name">细腻熨帖 · 情绪共振</div></div>
+            </div>
+            <div class="gallery-item" onclick="openLightbox('微信图片_2025-11-01_113749_426.jpg', '板评回响 // 编号 426/486')">
+              <div class="gallery-thumb-wrap"><img src="微信图片_2025-11-01_113749_426.jpg" alt="板评回响 426" loading="lazy"></div>
+              <div class="gallery-meta"><span class="gallery-tag">RECORD 426</span><div class="gallery-name">温柔自洽 · 边界舒展</div></div>
+            </div>
+            <div class="gallery-item" onclick="openLightbox('微信图片_20241104192321.jpg', '板评回响 // 编号 321')">
+              <div class="gallery-thumb-wrap"><img src="微信图片_20241104192321.jpg" alt="板评回响 321" loading="lazy"></div>
+              <div class="gallery-meta"><span class="gallery-tag">RECORD 321</span><div class="gallery-name">放下防备 · 真挚存照</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================================================
+     图片全屏放大灯箱 (Lightbox)
+     =================================================== -->
+<div id="lightboxModal" onclick="closeLightbox()">
+  <div class="lb-box" onclick="event.stopPropagation()">
+    <button class="lb-close" onclick="closeLightbox()">✕</button>
+    <img id="lbImg" class="lb-img" src="" alt="预览大图">
+    <div id="lbCaption" class="lb-caption">图片详情</div>
+  </div>
+</div>
+
+<script>
+function enterInnerRealm(){
+  const p = document.getElementById('surfaceWarningPage');
+  p.classList.add('dismissed');
+}
+
+// 抽拉式卡片展开/收起切换
+function toggleDeck(deckId){
+  const el = document.getElementById(deckId);
+  if(el){
+    el.classList.toggle('expanded');
+    const txt = el.querySelector('.status-txt');
+    if(txt){
+      txt.textContent = el.classList.contains('expanded') ? '点击收起' : '点击展开';
+    }
+  }
+}
+
+// 灯箱全屏大图预览
+function openLightbox(src, caption){
+  const modal = document.getElementById('lightboxModal');
+  const img = document.getElementById('lbImg');
+  const cap = document.getElementById('lbCaption');
+  img.src = src;
+  cap.textContent = caption;
+  modal.classList.add('active');
+}
+
+function closeLightbox(){
+  const modal = document.getElementById('lightboxModal');
+  modal.classList.remove('active');
+}
+
+document.addEventListener('keydown', function(e){
+  if(e.key === 'Escape') closeLightbox();
+});
+</script>
+</body>
+</html>

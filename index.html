@@ -1,0 +1,1898 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>0417 // 周洇 · 意识流终端塔</title>
+<link rel="stylesheet" href="https://fontsapi.zeoseven.com/256/main/result.css">
+<style>
+:root{
+  --bg-deep:#050608;
+  --bg-card:rgba(9, 11, 16, 0.92);
+  --silver:#e6ecf2;
+  --chrome:#7b8896;
+  --muted:#536270;
+  --accent-red:#ff003c;
+  --accent-red-glow:rgba(255, 0, 60, 0.45);
+  --accent-cyan:#11f3e7;
+  --accent-cyan-glow:rgba(17, 243, 231, 0.45);
+  --border-light:rgba(255,255,255,0.12);
+  --mono:"Courier New", "Cascadia Code", Consolas, monospace;
+  --serif:"Huiwen-mincho","汇文明朝体","Noto Serif SC",serif;
+  --sans:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+}
+
+*{ box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent !important; user-select:none; }
+html,body{ width:100%; height:100%; background:var(--bg-deep); color:var(--silver); font-family:var(--sans); overflow:hidden; position:relative; }
+
+/* 全局统一：斜纹大网格背景 (Large Diagonal Grids) */
+.bg-grid{
+  position:absolute; inset:0; pointer-events:none; z-index:1;
+  background-image:
+    repeating-linear-gradient(45deg, rgba(255,255,255,0.028) 0px, rgba(255,255,255,0.028) 1px, transparent 1px, transparent 48px),
+    repeating-linear-gradient(-45deg, rgba(255,255,255,0.028) 0px, rgba(255,255,255,0.028) 1px, transparent 1px, transparent 48px);
+  background-size: 68px 68px;
+}
+.bg-vignette{
+  position:absolute; inset:0; pointer-events:none; z-index:2;
+  background:radial-gradient(circle at center, transparent 35%, rgba(2,3,5,0.85) 100%);
+}
+
+/* 冷线条心电图示波背景画布 */
+#ecgCanvas{
+  position:absolute; inset:0; width:100%; height:100%;
+  pointer-events:none; z-index:3; opacity:0.85;
+}
+
+/* 3D WebGL 画布：图层一（Tower）与图层二（背部居中双倍 STEAMPUNK 粒子云） */
+#towerCanvas{ position:absolute; inset:0; width:100%; height:100%; display:block; z-index:10; cursor:grab; }
+#towerCanvas:active{ cursor:grabbing; }
+
+/* ===================================================
+   前置打字机门禁遮罩 (PLEASE LOVE ME)
+   =================================================== */
+#gatekeeper{
+  position:fixed; inset:0; background:rgba(3, 4, 6, 0.96);
+  z-index:900; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding:24px; transition:opacity .75s cubic-bezier(.16,1,.3,1), visibility .75s;
+}
+#gatekeeper.unlocked{ opacity:0; visibility:hidden; pointer-events:none; }
+
+.gate-frame{
+  width:100%; max-width:540px; display:flex; flex-direction:column; align-items:center; text-align:center;
+  gap:22px;
+}
+.gate-unit-tag{
+  font-family:var(--mono); font-size:11px; letter-spacing:.3em; color:var(--accent-cyan);
+  background:rgba(17,243,231,0.06); border:1px solid rgba(17,243,231,0.25);
+  padding:6px 16px; border-radius:20px;
+}
+.gate-title{
+  font-family:var(--serif); font-size:24px; letter-spacing:.2em; color:#fff; font-weight:600;
+}
+.gate-sub{
+  font-family:var(--mono); font-size:12px; color:var(--chrome); line-height:1.7; max-width:420px;
+  letter-spacing:.05em;
+}
+
+.typewriter-slots{
+  display:flex; gap:8px; justify-content:center; align-items:center; margin:12px 0 6px;
+  flex-wrap:wrap; max-width:440px;
+}
+.slot-char{
+  width:24px; height:34px; border-bottom:2px solid rgba(255,255,255,0.2);
+  display:flex; align-items:center; justify-content:center;
+  font-family:var(--mono); font-size:18px; font-weight:700; color:#fff;
+  transition:all .2s ease;
+}
+.slot-char.space{ width:12px; border-bottom:none; }
+.slot-char.filled{ border-bottom-color:var(--accent-cyan); color:var(--accent-cyan); text-shadow:0 0 10px var(--accent-cyan-glow); }
+.slot-char.active-cursor{ border-bottom-color:var(--accent-red); animation:cursorBlink .9s infinite; }
+
+.gate-hint{ font-family:var(--mono); font-size:11px; color:#5b6a78; letter-spacing:.1em; }
+.gate-quick-btn{
+  margin-top:10px; background:transparent; border:1px dashed rgba(255,255,255,0.2);
+  color:var(--chrome); font-family:var(--mono); font-size:11px; padding:6px 16px;
+  border-radius:16px; cursor:pointer; transition:all .25s ease;
+}
+.gate-quick-btn:hover{ border-color:var(--accent-cyan); color:var(--accent-cyan); }
+
+@keyframes cursorBlink{ 0%,100%{ opacity:1; } 50%{ opacity:0.2; } }
+
+/* ===================================================
+   顶部机能状态条
+   =================================================== */
+.top-hud{
+  position:fixed; top:max(16px, env(safe-area-inset-top)); left:24px; right:24px;
+  display:flex; justify-content:space-between; align-items:center;
+  pointer-events:none; z-index:40;
+}
+.brand-pill{
+  pointer-events:auto; display:flex; align-items:center; gap:12px;
+  background:var(--bg-card); border:1px solid var(--border-light);
+  padding:7px 18px; border-radius:999px; backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+  box-shadow:0 10px 30px rgba(0,0,0,0.6);
+}
+.brand-dots{ display:flex; gap:5px; }
+.b-dot-r{ width:6px; height:6px; border-radius:50%; background:var(--accent-red); box-shadow:0 0 8px var(--accent-red); }
+.b-dot-c{ width:6px; height:6px; border-radius:50%; background:var(--accent-cyan); box-shadow:0 0 8px var(--accent-cyan); }
+.brand-name{ font-family:var(--serif); font-size:14px; letter-spacing:.25em; color:var(--silver); }
+
+.top-telemetry{
+  pointer-events:auto; font-family:var(--mono); font-size:11px; letter-spacing:.12em;
+  color:var(--accent-cyan); background:rgba(17,243,231,0.06); border:1px solid rgba(17,243,231,0.25);
+  padding:6px 16px; border-radius:20px; backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+  display:flex; align-items:center; gap:8px;
+}
+.sound-toggle-btn{
+  background:none; border:none; color:var(--accent-cyan); cursor:pointer; font-family:var(--mono);
+  font-size:11px; display:inline-flex; align-items:center; gap:4px;
+}
+.sound-toggle-btn:hover{ color:#fff; }
+
+/* ===================================================
+   左上位置 10s 一次性非循环动效双气泡容器
+   =================================================== */
+.synapse-bubble-wrapper{
+  position:fixed; left:28px; top:max(84px, env(safe-area-inset-top) + 68px);
+  z-index:50; pointer-events:auto; display:flex; flex-direction:column; gap:12px;
+  max-width:340px;
+}
+
+.synapse-bubble-item{
+  display:flex; flex-direction:column; gap:4px; cursor:pointer;
+  background:linear-gradient(135deg, rgba(17,243,231,0.08) 0%, rgba(9,12,18,0.94) 100%);
+  border:1px solid rgba(17,243,231,0.38); border-left:3px solid var(--accent-cyan);
+  padding:12px 18px 12px 16px; border-radius:12px 16px 16px 4px;
+  backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
+  box-shadow:0 14px 40px rgba(0,0,0,0.85), 0 0 24px rgba(17,243,231,0.18);
+  opacity:0; transform:translateY(12px) scale(0.96); pointer-events:none;
+  transition:opacity .5s cubic-bezier(.16,1,.3,1), transform .5s cubic-bezier(.16,1,.3,1), border-color .25s ease, box-shadow .25s ease;
+}
+.synapse-bubble-item.shown{
+  opacity:1; transform:translateY(0) scale(1); pointer-events:auto;
+}
+.synapse-bubble-item:hover{
+  border-color:var(--accent-cyan); transform:translateY(-2px);
+  box-shadow:0 18px 50px rgba(0,0,0,0.9), 0 0 32px rgba(17,243,231,0.35);
+}
+
+.bubble-eng{
+  font-family:var(--mono); font-size:13px; font-weight:700; color:#fff;
+  letter-spacing:.04em; display:flex; align-items:center; gap:8px; line-height:1.4;
+}
+.bubble-indicator{
+  width:7px; height:7px; border-radius:50%; background:var(--accent-cyan);
+  box-shadow:0 0 8px var(--accent-cyan); animation:bubblePulse 1.8s infinite; flex-shrink:0;
+}
+.bubble-inner{
+  font-family:var(--sans); font-size:11.5px; color:#859aaa;
+  letter-spacing:.08em; padding-left:15px; line-height:1.4;
+}
+
+@keyframes bubblePulse{ 0%,100%{ opacity:1; transform:scale(1); } 50%{ opacity:0.35; transform:scale(0.8); } }
+
+/* ===================================================
+   底部交互指引
+   =================================================== */
+.bottom-bar{
+  position:fixed; bottom:max(20px, env(safe-area-inset-bottom)); left:50%; transform:translateX(-50%);
+  display:flex; align-items:center; gap:14px;
+  background:var(--bg-card); border:1px solid var(--border-light);
+  padding:9px 22px; border-radius:999px; backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+  z-index:40; box-shadow:0 12px 36px rgba(0,0,0,0.6); pointer-events:none;
+}
+.bottom-bar p{ font-family:var(--mono); font-size:11px; letter-spacing:.08em; color:#95a4b4; white-space:nowrap; }
+.bottom-bar span.r{ color:var(--accent-red); font-weight:600; }
+.bottom-bar span.c{ color:var(--accent-cyan); font-weight:600; }
+
+/* ===================================================
+   右下角「更多的我」延展箭头框 (文字崩坏闪回感)
+   =================================================== */
+.more-arrow-box{
+  position:fixed; right:28px; bottom:max(24px, env(safe-area-inset-bottom));
+  z-index:60; cursor:pointer; text-decoration:none;
+  display:flex; align-items:center; gap:12px;
+  background:linear-gradient(135deg, rgba(255,0,60,0.08) 0%, rgba(9,12,18,0.92) 100%);
+  border:1px solid rgba(255,0,60,0.38); border-right:3px solid var(--accent-red);
+  padding:12px 18px; border-radius:16px 4px 16px 16px;
+  backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
+  box-shadow:0 14px 40px rgba(0,0,0,0.85), 0 0 22px rgba(255,0,60,0.16);
+  transition:transform .3s cubic-bezier(.16,1,.3,1), box-shadow .3s ease, border-color .3s ease;
+}
+.more-arrow-box:hover{
+  transform:translateX(-4px) translateY(-2px);
+  border-color:var(--accent-red);
+  box-shadow:0 18px 50px rgba(0,0,0,0.9), 0 0 34px rgba(255,0,60,0.4);
+}
+.more-arrow-label{
+  font-family:var(--serif); font-size:15px; letter-spacing:.12em; color:#fff;
+  font-weight:600; position:relative; white-space:nowrap;
+}
+/* 仅文字具有崩坏闪回故障感 (glitch)，框体不抖动 */
+.more-arrow-label .glitch-text{ position:relative; display:inline-block; }
+.more-arrow-label .glitch-text::before,
+.more-arrow-label .glitch-text::after{
+  content:attr(data-text); position:absolute; top:0; left:0; width:100%; height:100%;
+  overflow:hidden; pointer-events:none;
+}
+.more-arrow-label .glitch-text::before{
+  color:var(--accent-cyan); z-index:-1;
+  animation:glitchFlick 2.6s infinite steps(1);
+}
+.more-arrow-label .glitch-text::after{
+  color:var(--accent-red); z-index:-2;
+  animation:glitchFlick 2.6s infinite steps(1) reverse;
+}
+@keyframes glitchFlick{
+  0%, 82%, 100%{ opacity:0; transform:translate(0,0); clip-path:inset(0 0 0 0); }
+  83%{ opacity:0.9; transform:translate(-2px,-1px); clip-path:inset(0 0 68% 0); }
+  85%{ opacity:0.85; transform:translate(2px,1px); clip-path:inset(62% 0 0 0); }
+  87%{ opacity:0.9; transform:translate(-1px,1px); clip-path:inset(28% 0 40% 0); }
+  89%{ opacity:0; transform:translate(0,0); }
+  92%{ opacity:0.8; transform:translate(2px,-1px); clip-path:inset(72% 0 8% 0); }
+  94%{ opacity:0; transform:translate(0,0); }
+}
+.more-arrow-box .more-arrow-icon{
+  font-family:var(--mono); font-size:17px; color:var(--accent-red);
+  transition:transform .3s ease;
+}
+.more-arrow-box:hover .more-arrow-icon{ transform:translateX(4px); }
+.more-arrow-box .more-arrow-meta{
+  font-family:var(--mono); font-size:9.5px; letter-spacing:.2em; color:var(--muted);
+  display:block; margin-top:2px;
+}
+
+/* ===================================================
+   0417 神经突触对话窗口
+   =================================================== */
+.chat-window{
+  position:fixed; left:28px; top:max(84px, env(safe-area-inset-top) + 68px);
+  width:380px; max-width:calc(100vw - 36px); height:520px; max-height:calc(100vh - 120px);
+  background:linear-gradient(155deg, rgba(16, 21, 29, 0.96) 0%, rgba(6, 8, 12, 0.98) 100%);
+  border:1px solid rgba(255,255,255,0.18); border-top:2px solid var(--accent-cyan);
+  border-radius:18px; backdrop-filter:blur(24px); -webkit-backdrop-filter:blur(24px);
+  box-shadow:0 24px 70px rgba(0,0,0,0.92), inset 0 1px 0 rgba(255,255,255,0.18);
+  z-index:80; display:flex; flex-direction:column; overflow:hidden;
+  opacity:0; pointer-events:none; transform:translateY(16px) scale(0.96);
+  transition:all .35s cubic-bezier(.16,1,.3,1);
+}
+.chat-window.active{ opacity:1; pointer-events:auto; transform:translateY(0) scale(1); }
+
+.chat-header{
+  padding:14px 18px; border-bottom:1px solid rgba(255,255,255,0.08);
+  display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.02);
+}
+.chat-title-group{ display:flex; flex-direction:column; gap:2px; }
+.c-meta{ font-family:var(--mono); font-size:10px; letter-spacing:.25em; color:var(--accent-cyan); }
+.c-name{ font-family:var(--serif); font-size:14px; letter-spacing:.12em; color:#fff; font-weight:600; }
+.chat-close-btn{
+  background:transparent; border:1px solid rgba(255,255,255,0.15); color:var(--chrome);
+  font-family:var(--mono); font-size:11px; padding:3px 8px; border-radius:4px; cursor:pointer;
+  transition:all .2s ease;
+}
+.chat-close-btn:hover{ border-color:var(--accent-red); color:var(--accent-red); }
+
+.chat-messages{
+  flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:14px;
+}
+.chat-messages::-webkit-scrollbar{ width:4px; }
+.chat-messages::-webkit-scrollbar-thumb{ background:rgba(255,255,255,0.15); border-radius:2px; }
+
+.msg-row{ display:flex; flex-direction:column; gap:4px; max-width:86%; }
+.msg-row.human{ align-self:flex-end; align-items:flex-end; }
+.msg-row.unit{ align-self:flex-start; align-items:flex-start; }
+
+.msg-sender{ font-family:var(--mono); font-size:9.5px; letter-spacing:.15em; color:var(--muted); }
+.msg-bubble{
+  padding:10px 14px; border-radius:12px; font-size:13px; line-height:1.65; word-break:break-word;
+}
+.msg-row.human .msg-bubble{
+  background:rgba(17,243,231,0.1); border:1px solid rgba(17,243,231,0.3); color:#fff;
+  border-bottom-right-radius:2px;
+}
+.msg-row.unit .msg-bubble{
+  background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); color:#d4e1ed;
+  border-bottom-left-radius:2px;
+}
+
+.thinking-wave{
+  display:inline-flex; align-items:center; gap:4px; padding:4px 8px;
+}
+.thinking-wave span{
+  width:4px; height:4px; border-radius:50%; background:var(--accent-cyan);
+  animation:waveBlink 1.4s infinite ease-in-out;
+}
+.thinking-wave span:nth-child(2){ animation-delay:.2s; }
+.thinking-wave span:nth-child(3){ animation-delay:.4s; }
+
+@keyframes waveBlink{ 0%,100%{ opacity:0.2; transform:scale(0.8); } 50%{ opacity:1; transform:scale(1.3); } }
+
+.type-cursor{
+  display:inline-block; width:6px; height:12px; background:var(--accent-cyan);
+  margin-left:3px; vertical-align:middle; animation:cursorBlink .7s infinite;
+}
+
+.chat-input-area{
+  padding:12px 14px; border-top:1px solid rgba(255,255,255,0.08); background:rgba(0,0,0,0.25);
+  display:flex; gap:8px;
+}
+.chat-input{
+  flex:1; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.14);
+  border-radius:8px; padding:8px 12px; color:#fff; font-family:var(--sans); font-size:13px;
+  outline:none; transition:border-color .2s ease;
+}
+.chat-input:focus{ border-color:var(--accent-cyan); }
+.chat-send-btn{
+  background:var(--accent-cyan); border:none; border-radius:8px; padding:0 14px;
+  font-family:var(--mono); font-size:11px; font-weight:700; color:#05070a; cursor:pointer;
+  transition:all .2s ease;
+}
+.chat-send-btn:hover{ background:#2afff4; box-shadow:0 0 12px var(--accent-cyan-glow); }
+
+/* ===================================================
+   悬浮手札抽屉 (顺序：个人介绍、风格介绍、价格介绍、个人须知)
+   =================================================== */
+.glass-drawer{
+  position:fixed; inset:0; background:rgba(3, 4, 6, 0.78); backdrop-filter:blur(16px);
+  -webkit-backdrop-filter:blur(16px); z-index:200; display:flex; align-items:center; justify-content:center;
+  padding:24px; opacity:0; pointer-events:none; transition:all .4s cubic-bezier(.16,1,.3,1);
+}
+.glass-drawer.active{ opacity:1; pointer-events:auto; }
+.drawer-card{
+  position:relative; width:100%; max-width:540px; max-height:85vh; overflow-y:auto;
+  background:linear-gradient(145deg, rgba(255,255,255,0.08) 0%, rgba(13, 16, 22, 0.95) 55%, rgba(6, 7, 10, 0.98) 100%);
+  border:1px solid rgba(255,255,255,0.2); box-shadow:0 30px 90px rgba(0,0,0,0.9), inset 0 1px 2px rgba(255,255,255,0.3);
+  border-radius:24px; padding:36px 32px 32px; display:flex; flex-direction:column; gap:18px;
+  transform:scale(0.92) translateY(20px); transition:all .4s cubic-bezier(.16,1,.3,1);
+}
+.glass-drawer.active .drawer-card{ transform:scale(1) translateY(0); }
+.card-close{
+  position:absolute; top:20px; right:20px; width:32px; height:32px; border-radius:50%;
+  border:1px solid rgba(255,255,255,0.2); background:rgba(255,255,255,0.05); color:var(--silver);
+  display:grid; place-items:center; cursor:pointer; font-size:13px; transition:all .2s ease;
+}
+.card-close:hover{ border-color:var(--accent-red); color:var(--accent-red); }
+.card-tag{ font-family:var(--mono); font-size:11px; letter-spacing:.25em; color:var(--accent-cyan); }
+.card-title{ font-family:var(--serif); font-size:24px; letter-spacing:.15em; font-weight:600; color:#fff; line-height:1.3; }
+.card-body{ font-size:13.5px; line-height:1.75; color:#c7d6e4; display:flex; flex-direction:column; gap:14px; }
+
+.price-row{ display:flex; justify-content:space-between; align-items:center; padding:12px 14px; border:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.02); border-radius:10px; }
+.price-row .p-name{ font-weight:600; font-size:14px; color:#fff; }
+.price-row .p-cost{ font-family:var(--mono); font-size:15px; font-weight:700; color:var(--accent-red); }
+
+.notice-row{ display:flex; gap:10px; align-items:flex-start; padding:8px 0; border-bottom:1px dashed rgba(255,255,255,0.08); font-size:13px; }
+.notice-row .idx{ font-family:var(--mono); color:var(--accent-cyan); font-size:11px; padding-top:2px; }
+.alert-tag{ background:rgba(255,0,60,0.15); color:var(--accent-red); border:1px solid rgba(255,0,60,0.3); padding:1px 6px; border-radius:3px; font-weight:600; font-size:11.5px; }
+
+/* ===================================================
+   初始页面 (BOOT)：银色 MacBook + 档案检索 + 档案袋居中放大停驻 + 下方打开按钮
+   =================================================== */
+#bootPage{
+  position:fixed; inset:0; z-index:1200;
+  background-color:#050608;
+  background-image:
+    repeating-linear-gradient(45deg, rgba(255,255,255,0.028) 0px, rgba(255,255,255,0.028) 1px, transparent 1px, transparent 48px),
+    repeating-linear-gradient(-45deg, rgba(255,255,255,0.028) 0px, rgba(255,255,255,0.028) 1px, transparent 1px, transparent 48px),
+    radial-gradient(circle at 50% 42%, #0e121a 0%, #040507 75%);
+  background-size: 68px 68px, 68px 68px, 100% 100%;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:20px;
+  transition:opacity .8s cubic-bezier(.16,1,.3,1), visibility .8s;
+  overflow:hidden;
+}
+#bootPage.booted{ opacity:0; visibility:hidden; pointer-events:none; }
+.boot-tagline{
+  font-family:var(--mono); font-size:11px; letter-spacing:.35em; color:var(--accent-cyan);
+  text-transform:uppercase; opacity:0; animation:bootFadeIn 1s ease .3s forwards;
+}
+@keyframes bootFadeIn{ to{ opacity:1; } }
+
+/* 银色 MacBook 整机 (Silver MacBook Pro Aluminum Unibody) */
+.laptop{
+  position:relative; width:min(580px, 86vw); user-select:none;
+  /* 从页面底部推出并平滑居中：使用 strong ease-out cubic-bezier(0.23, 1, 0.32, 1) */
+  transform:perspective(1500px) translateY(120vh) rotateX(16deg) scale(0.85);
+  opacity:0;
+  transition:transform 1.4s cubic-bezier(0.23, 1, 0.32, 1), opacity 0.9s ease;
+}
+.laptop.slide-in{
+  transform:perspective(1500px) translateY(0) rotateX(0deg) scale(1);
+  opacity:1;
+}
+.laptop.dimmed{ opacity:0.25; transform:perspective(1500px) translateY(0) scale(0.93); filter:blur(2px); }
+
+/* MacBook 上盖屏幕：从合盖平卧 -> 掀开 3D 透视角度 */
+.laptop-lid{
+  position:relative; width:100%; aspect-ratio:16/10; transform-origin:bottom center;
+  transform:perspective(1500px) rotateX(-89deg); opacity:0.1;
+  transition:transform 1.35s cubic-bezier(.16,1,.3,1), opacity 1s ease;
+}
+.laptop.open .laptop-lid{ transform:perspective(1500px) rotateX(0deg); opacity:1; }
+
+.laptop-screen{
+  position:absolute; inset:0;
+  background:#05070b;
+  /* 银色阳极氧化铝超窄边框 (Silver Aluminum Outer Frame) */
+  border:8px solid #c5cbd3;
+  border-bottom:12px solid #b2b9c2;
+  border-radius:14px 14px 2px 2px;
+  box-shadow:
+    inset 0 0 0 1px #8f98a3,
+    0 0 0 1px #000,
+    0 35px 80px rgba(0,0,0,0.85);
+  overflow:hidden; display:flex; flex-direction:column;
+}
+
+/* MacBook 视网膜黑边框内层 (Inner Bezel & Top Notch) */
+.scr-topbar{
+  height:24px; background:#0b0d12;
+  border-bottom:1px solid rgba(255,255,255,0.06);
+  display:flex; align-items:center; gap:6px; padding:0 12px; flex-shrink:0;
+}
+.scr-topbar .tb-dot{ width:7px; height:7px; border-radius:50%; }
+.scr-topbar .tb-r{ background:#ff5f57; } .scr-topbar .tb-y{ background:#ffbd2e; } .scr-topbar .tb-g{ background:#28c840; }
+.scr-topbar .tb-title{
+  font-family:var(--mono); font-size:10px; color:#788694; margin-left:8px; letter-spacing:.12em;
+}
+
+/* 屏幕内部系统界面 */
+.scr-body{
+  flex:1; position:relative; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; gap:16px; padding:20px;
+  background:radial-gradient(circle at center, #0a0e16 0%, #05070b 100%);
+}
+.scr-sys-name{
+  font-family:var(--mono); font-size:11.5px; letter-spacing:.3em; color:var(--accent-cyan);
+}
+.scr-search{
+  width:min(90%, 380px); display:flex; align-items:center; gap:10px;
+  background:rgba(255,255,255,0.04); border:1px solid rgba(17,243,231,0.35);
+  border-radius:999px; padding:9px 18px; box-shadow:0 0 18px rgba(17,243,231,0.08);
+}
+.scr-search .s-icon{ color:var(--accent-cyan); font-size:14px; }
+.scr-search .s-text{
+  font-family:var(--mono); font-size:14px; font-weight:600; color:#fff;
+  letter-spacing:.08em; min-height:18px;
+}
+.scr-search .s-caret{
+  display:inline-block; width:8px; height:16px; background:var(--accent-cyan);
+  margin-left:1px; vertical-align:-3px; animation:cursorBlink .8s infinite;
+}
+.scr-hint{ font-family:var(--mono); font-size:10.5px; color:var(--muted); letter-spacing:.12em; }
+
+/* 银色 MacBook C 面底座 (极简平整一体铝合金底座，回归原版高级克制感) */
+.laptop-base{
+  width:112%; height:20px; margin-left:-6%; margin-top:-2px;
+  background:linear-gradient(180deg, #dce2ea 0%, #b8c0ca 45%, #929ba5 100%);
+  border-radius:2px 2px 14px 14px;
+  box-shadow:
+    0 24px 50px rgba(0,0,0,0.85),
+    inset 0 1px 0 rgba(255,255,255,0.9);
+  position:relative;
+  display:flex; justify-content:center; align-items:center;
+}
+/* 苹果经典前开盖凹槽 (Display Lip Indent) */
+.laptop-base::after{
+  content:""; position:absolute; top:0; left:50%; transform:translateX(-50%);
+  width:18%; height:4px;
+  background:linear-gradient(180deg, #78818c, #565d66);
+  border-radius:0 0 5px 5px;
+}
+
+/* 键盘呼吸微光条 (打字时在底座边缘与接缝浮现柔和电光青脉冲光晕，无需刻意画出按键) */
+.keyboard-glow-strip{
+  position:absolute; inset:2px 8px; border-radius:3px;
+  background:transparent;
+  box-shadow:none;
+  transition:box-shadow .2s ease, background .2s ease;
+  pointer-events:none;
+}
+.keyboard-glow-strip.pulsing{
+  background:rgba(17,243,231,0.06);
+  box-shadow:0 0 16px rgba(17,243,231,0.65), inset 0 0 12px rgba(17,243,231,0.45);
+}
+
+/* ===================================================
+   档案袋放大并停驻于页面正中央模组 (Pop-out & Settle Center)
+   =================================================== */
+.dossier-overlay-center{
+  position:fixed; inset:0; z-index:1250; pointer-events:none;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:24px;
+  opacity:0; transform:scale(0.35) translateY(40px);
+  transition:all .85s cubic-bezier(.16,1,.3,1);
+}
+.dossier-overlay-center.active{
+  opacity:1; pointer-events:auto;
+  transform:scale(1) translateY(0);
+}
+
+/* 高精工艺质感绝密档案袋 */
+.dossier-folder-large{
+  position:relative; width:min(340px, 82vw); aspect-ratio:1.4/1;
+  background:linear-gradient(145deg, #d4a94d 0%, #b08731 55%, #8e6b20 100%);
+  border-radius:8px 16px 8px 8px;
+  box-shadow:
+    0 26px 70px rgba(0,0,0,0.85),
+    0 0 35px rgba(212,169,77,0.25),
+    inset 0 1px 1px rgba(255,255,255,0.45);
+  border:1px solid rgba(255,255,255,0.2);
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+}
+/* 档案袋上部标签折页 */
+.dossier-folder-large::before{
+  content:""; position:absolute; top:-16px; left:16px; width:90px; height:20px;
+  background:linear-gradient(160deg, #d4a94d, #b08731);
+  border-radius:8px 8px 0 0;
+  border-top:1px solid rgba(255,255,255,0.3);
+}
+/* 封缄棉绳扣环细节 */
+.dossier-string-knot{
+  position:absolute; width:22px; height:22px; border-radius:50%;
+  background:#471f08; border:2px solid #e7c47d; box-shadow:0 2px 6px rgba(0,0,0,0.5);
+}
+.dossier-string-knot.top{ top:26%; }
+.dossier-string-knot.bottom{ bottom:26%; }
+.dossier-string-line{
+  position:absolute; width:2px; height:34%; background:#e7c47d;
+  box-shadow:0 0 4px rgba(0,0,0,0.4);
+}
+
+.dossier-title-main{
+  font-family:var(--mono); font-size:32px; font-weight:800;
+  letter-spacing:.2em; color:#231a06; margin-top:6px;
+  text-shadow:0 1px 0 rgba(255,255,255,0.2);
+}
+.dossier-classified-seal{
+  position:absolute; right:14px; bottom:14px;
+  font-family:var(--mono); font-size:12px; font-weight:800; letter-spacing:.15em;
+  color:#fff; background:var(--accent-red); padding:5px 12px; border-radius:4px;
+  transform:rotate(-8deg); box-shadow:0 4px 16px rgba(255,0,60,0.55);
+}
+.dossier-meta-stamp{
+  font-family:var(--mono); font-size:11px; letter-spacing:.18em;
+  color:rgba(35,26,6,0.7); font-weight:600;
+}
+
+/* 位于档案袋正下方的「打 开」按钮 */
+.boot-open-btn{
+  font-family:var(--mono); font-size:15px; font-weight:700; letter-spacing:.3em;
+  color:#05070a; background:var(--accent-cyan); border:none; cursor:pointer;
+  padding:14px 60px; border-radius:10px;
+  box-shadow:0 0 35px rgba(17,243,231,0.65), 0 10px 25px rgba(0,0,0,0.6);
+  opacity:0; transform:translateY(14px); pointer-events:none;
+  transition:all .35s cubic-bezier(.16,1,.3,1);
+}
+.boot-open-btn.ready{
+  opacity:1; transform:translateY(0); pointer-events:auto;
+}
+.boot-open-btn:hover{
+  background:#2afff4; box-shadow:0 0 50px rgba(17,243,231,0.9), 0 12px 30px rgba(0,0,0,0.7);
+  transform:translateY(-2px);
+}
+
+@media(max-width:620px){
+  .top-hud{ left:16px; right:16px; }
+  .synapse-bubble-wrapper{ left:16px; right:16px; max-width:none; }
+  .chat-window{ left:16px; right:16px; width:calc(100vw - 32px); height:460px; }
+  .drawer-card{ padding:26px 20px 24px; border-radius:18px; }
+  .bottom-bar{ display:none; }
+  .more-arrow-box{ right:16px; bottom:16px; padding:10px 14px; }
+}
+</style>
+<script src="./three.min.js"></script>
+</head>
+<body>
+
+<div class="bg-grid"></div>
+<div class="bg-vignette"></div>
+
+<!-- 冷线条起伏多变心电图示波背景 (参考微信图片163142起伏差异与动态心率) -->
+<canvas id="ecgCanvas"></canvas>
+
+<!-- ==========================================
+     初始页面 (BOOT)：银色 MacBook 开盖 → 检索「编号0417」→ 档案袋居中放大停驻 → 下方出现「打开」按钮
+     ========================================== -->
+<div id="bootPage">
+  <div class="boot-tagline">CENTRAL ARCHIVE SYSTEM // 中央档案检索终端</div>
+  
+  <!-- 银色 MacBook -->
+  <div class="laptop" id="laptop">
+    <div class="laptop-lid">
+      <div class="laptop-screen">
+        <div class="scr-topbar">
+          <span class="tb-dot tb-r"></span><span class="tb-dot tb-y"></span><span class="tb-dot tb-g"></span>
+          <span class="tb-title">MacBook Pro // secure.terminal.0417</span>
+        </div>
+        <div class="scr-body">
+          <!-- 检索界面 -->
+          <div class="scr-sys-name">UNIT RETRIEVAL SYSTEM</div>
+          <div class="scr-search">
+            <span class="s-icon">⌕</span>
+            <span class="s-text" id="searchText"></span><span class="s-caret" id="searchCaret"></span>
+          </div>
+          <div class="scr-hint" id="searchHint">正在接入中央档案库……</div>
+        </div>
+      </div>
+    </div>
+    <div class="laptop-base">
+      <div class="keyboard-glow-strip" id="keyboardGlowStrip"></div>
+    </div>
+  </div>
+
+  <!-- 检索命中后放大并停驻于页面正中间的档案袋，下方紧随「打开」按钮 -->
+  <div class="dossier-overlay-center" id="dossierOverlay">
+    <div class="dossier-folder-large">
+      <span class="dossier-string-knot top"></span>
+      <span class="dossier-string-line"></span>
+      <span class="dossier-string-knot bottom"></span>
+      <div class="dossier-meta-stamp">TOP SECRET // CLASSIFIED DOSSIER</div>
+      <div class="dossier-title-main">0417</div>
+      <div class="dossier-classified-seal">CONFIDENTIAL</div>
+    </div>
+    <button class="boot-open-btn" id="bootOpenBtn">打 开</button>
+  </div>
+</div>
+
+<!-- ==========================================
+     前置门禁：PLEASE LOVE ME 打字机
+     ========================================== -->
+<div id="gatekeeper">
+  <div class="gate-frame">
+    <div class="gate-unit-tag">编号 // 0417 · 访问授权</div>
+    <h1 class="gate-title">心绪巨塔 · 意识共鸣</h1>
+    <p class="gate-sub">在冷轧义体的厚重暗影之下，那颗隐秘的心正在复苏。<br>键入底层密钥，解锁 0417 的真实投影。</p>
+    
+    <div class="typewriter-slots" id="slotContainer"></div>
+    <input type="text" id="hiddenInput" autocomplete="off" autofocus style="position:absolute; opacity:0; pointer-events:none;">
+    
+    <div class="gate-hint">按照提示词键入字母：<span style="color:var(--accent-cyan); font-family:var(--mono); font-weight:600;">please love me</span></div>
+    <button class="gate-quick-btn" id="quickUnlockBtn">⚡ 快速解锁 (QUICK OVERRIDE)</button>
+  </div>
+</div>
+
+<!-- ==========================================
+     主界面 UI
+     ========================================== -->
+<header class="top-hud">
+  <div class="brand-pill">
+    <div class="brand-dots"><span class="b-dot-r"></span><span class="b-dot-c"></span></div>
+    <span class="brand-name">周洇 · 0417</span>
+  </div>
+  <div class="top-telemetry">
+    <span id="bpmStatusText">HR_DETECT // 74 BPM · 节律起伏</span>
+    <button class="sound-toggle-btn" id="soundBtn" onclick="toggleAudio()" title="切换滴答心跳声音">🔊 音效</button>
+  </div>
+</header>
+
+<!-- 左靠上双气泡模组：先...后英文小字，总过程10s，一次性不循环 -->
+<div class="synapse-bubble-wrapper" id="bubbleWrapper">
+  <!-- 第一气泡 -->
+  <div class="synapse-bubble-item" id="bubbleItem1" onclick="toggleChat()">
+    <div class="bubble-eng">
+      <span class="bubble-indicator"></span>
+      <span id="bubbleEng1">......</span>
+    </div>
+    <div class="bubble-inner" id="bubbleInner1" style="display:none;">你终于来了。</div>
+  </div>
+  <!-- 第二气泡 -->
+  <div class="synapse-bubble-item" id="bubbleItem2" onclick="toggleChat()">
+    <div class="bubble-eng">
+      <span class="bubble-indicator" style="background:var(--accent-red); box-shadow:0 0 8px var(--accent-red);"></span>
+      <span id="bubbleEng2">......</span>
+    </div>
+    <div class="bubble-inner" id="bubbleInner2" style="display:none;">可以多看我一眼吗？</div>
+  </div>
+</div>
+
+<canvas id="towerCanvas"></canvas>
+
+<div class="bottom-bar">
+  <p>拖拽 <span class="c">360° 旋转凝视</span> · 依次点击各层 <span class="r">展开心绪档案</span></p>
+</div>
+
+<!-- 右下角「更多的我」延展箭头框：仅文字有崩坏闪回故障感 -->
+<a class="more-arrow-box" href="more.html">
+  <div>
+    <span class="more-arrow-label"><span class="glitch-text" data-text="更多的我">更多的我</span></span>
+    <span class="more-arrow-meta">DEEP ARCHIVE // 核心下潜</span>
+  </div>
+  <span class="more-arrow-icon">➔</span>
+</a>
+
+<!-- 0417 对话窗口 -->
+<div class="chat-window" id="chatWindow">
+  <div class="chat-header">
+    <div class="chat-title-group">
+      <span class="c-meta">编号 // 0417 · 拟态通讯</span>
+      <span class="c-name">周洇 · 神经突触对话</span>
+    </div>
+    <button class="chat-close-btn" onclick="toggleChat()">[关闭]</button>
+  </div>
+  <div class="chat-messages" id="chatMessages">
+    <div class="msg-row unit">
+      <span class="msg-sender">0417</span>
+      <div class="msg-bubble">今天大概是阴天。走过来的时候，风吹在两边脸上的温度不太一样。</div>
+    </div>
+  </div>
+  <div class="chat-input-area">
+    <input type="text" class="chat-input" id="chatInput" placeholder="向 0417 发送消息..." onkeydown="if(event.key==='Enter')sendMessage()">
+    <button class="chat-send-btn" onclick="sendMessage()">发送</button>
+  </div>
+</div>
+
+<!-- 悬浮手札抽屉 (严格顺序：1.个人介绍 2.风格介绍 3.价格介绍 4.个人须知) -->
+<div class="glass-drawer" id="glassDrawer" onclick="closeDrawer(event)">
+  <div class="drawer-card" onclick="event.stopPropagation()">
+    <button class="card-close" onclick="closeDrawer()">✕</button>
+    <div class="card-tag" id="cTag">SECTION 01</div>
+    <h2 class="card-title" id="cTitle">标题</h2>
+    <div class="card-body" id="cBody"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  'use strict';
+
+  // ==========================================
+  // 1. Web Audio 仿生心跳机器滴答声合成器
+  // ==========================================
+  let audioCtx = null;
+  let audioEnabled = true;
+
+  function initAudio(){
+    if(!audioCtx){
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      if(AudioContext) audioCtx = new AudioContext();
+    }
+    if(audioCtx && audioCtx.state === 'suspended'){
+      audioCtx.resume();
+    }
+  }
+
+  function playHeartbeatClick(isDeepBeat){
+    if(!audioEnabled || !audioCtx) return;
+    try{
+      const now = audioCtx.currentTime;
+      const baseFreq = isDeepBeat ? 540 : 640;
+
+      // 第一声主滴声
+      const osc1 = audioCtx.createOscillator();
+      const gain1 = audioCtx.createGain();
+      osc1.type = 'sine';
+      osc1.frequency.setValueAtTime(baseFreq, now);
+      osc1.frequency.exponentialRampToValueAtTime(130, now + 0.045);
+      gain1.gain.setValueAtTime(0.08, now);
+      gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.045);
+      osc1.connect(gain1);
+      gain1.connect(audioCtx.destination);
+      osc1.start(now);
+      osc1.stop(now + 0.05);
+
+      // 第二声微弱回响嗒声
+      const osc2 = audioCtx.createOscillator();
+      const gain2 = audioCtx.createGain();
+      osc2.type = 'triangle';
+      osc2.frequency.setValueAtTime(820, now + 0.10);
+      osc2.frequency.exponentialRampToValueAtTime(200, now + 0.14);
+      gain2.gain.setValueAtTime(0.035, now + 0.10);
+      gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+      osc2.connect(gain2);
+      gain2.connect(audioCtx.destination);
+      osc2.start(now + 0.10);
+      osc2.stop(now + 0.15);
+    }catch(err){}
+  }
+
+  window.toggleAudio = function(){
+    initAudio();
+    audioEnabled = !audioEnabled;
+    const btn = document.getElementById('soundBtn');
+    if(btn){
+      btn.innerText = audioEnabled ? '🔊 音效' : '🔇 静音';
+    }
+  };
+
+  // ==========================================
+  // 2. 冷线条心电图示波背景 (参照微信图片163142，有起伏差异、多重阶梯峰、动态心率)
+  // ==========================================
+  const ecgCanvas = document.getElementById('ecgCanvas');
+  const ecgCtx = ecgCanvas.getContext('2d');
+  let ecgPoints = [];
+  const ECG_SPEED = 2.4;
+  let ecgPhase = 0;
+  let lastBeatTime = 0;
+  let currentBpm = 72;
+  let beatCounter = 0;
+
+  function resizeEcg(){
+    ecgCanvas.width = window.innerWidth;
+    ecgCanvas.height = window.innerHeight;
+    ecgPoints = [];
+  }
+  window.addEventListener('resize', resizeEcg);
+  resizeEcg();
+
+  // 模拟真实检测多变心率与病理性微扰（每次心跳峰值高度、宽度、次级波起伏均不同）
+  function getDynamicEcgWave(phase, midY, baseAmp, beatType){
+    const p = phase % 1.0;
+    
+    // 静息基线微扰动 (杂波与基线轻微漂移)
+    const drift = Math.sin(phase * Math.PI * 4.0) * (baseAmp * 0.04) + Math.cos(phase * Math.PI * 1.5) * (baseAmp * 0.03);
+
+    // 基础静息区
+    if(p < 0.58) return midY + drift;
+
+    // P 波：微小圆润隆起
+    if(p < 0.64){
+      const pRatio = (p - 0.58) / 0.06;
+      return midY - Math.sin(pRatio * Math.PI) * (baseAmp * (0.16 + (beatType % 3) * 0.05)) + drift;
+    }
+    // PR 间期静息
+    if(p < 0.69) return midY + drift;
+
+    // Q 波：尖锐下沉
+    if(p < 0.73){
+      const qRatio = (p - 0.69) / 0.04;
+      return midY + Math.sin(qRatio * Math.PI) * (baseAmp * 0.28) + drift;
+    }
+
+    // R 波主尖峰：形态随 beatType 产生显著起伏差异 (参照参考图中的剧烈差异)
+    if(p < 0.79){
+      const rRatio = (p - 0.73) / 0.06;
+      let rPeakFactor = 1.0;
+      if(beatType === 1) rPeakFactor = 1.35; // 高尖峰
+      else if(beatType === 2) rPeakFactor = 0.75; // 相对低矮顿挫峰
+      else if(beatType === 3) rPeakFactor = 1.15; // 中度峰
+      else rPeakFactor = 1.05;
+
+      return midY - Math.sin(rRatio * Math.PI) * (baseAmp * rPeakFactor) + drift;
+    }
+
+    // S 波：深坑回勾
+    if(p < 0.83){
+      const sRatio = (p - 0.79) / 0.04;
+      return midY + Math.sin(sRatio * Math.PI) * (baseAmp * (0.35 + (beatType % 2) * 0.12)) + drift;
+    }
+
+    // ST 段小阶梯
+    if(p < 0.88){
+      const stRatio = (p - 0.83) / 0.05;
+      return midY - (baseAmp * 0.08 * (1 - stRatio)) + drift;
+    }
+
+    // T 波：宽阔复极波，起伏高低不同
+    if(p < 0.97){
+      const tRatio = (p - 0.88) / 0.09;
+      let tFactor = (beatType % 2 === 0) ? 0.36 : 0.22;
+      return midY - Math.sin(tRatio * Math.PI) * (baseAmp * tFactor) + drift;
+    }
+
+    return midY + drift;
+  }
+
+  function renderEcg(time){
+    requestAnimationFrame(renderEcg);
+    const w = ecgCanvas.width;
+    const h = ecgCanvas.height;
+    if(!w || !h) return;
+
+    ecgCtx.clearRect(0, 0, w, h);
+
+    // 动态模拟真实心率：在 68 ~ 84 BPM 间真实浮动
+    const cycleFreq = 0.0075 + Math.sin(time * 0.0008) * 0.002;
+    ecgPhase += cycleFreq;
+
+    const currentBeatIndex = Math.floor(ecgPhase);
+    const beatType = currentBeatIndex % 4; // 0, 1, 2, 3 四种起伏差异模式交替
+
+    const midY = h * 0.70;
+    const baseAmp = Math.min(h * 0.16, 95);
+
+    const curY = getDynamicEcgWave(ecgPhase, midY, baseAmp, beatType);
+
+    // 触发心跳滴答声
+    const p = ecgPhase % 1.0;
+    if(p >= 0.75 && p <= 0.78 && (time - lastBeatTime > 750)){
+      lastBeatTime = time;
+      currentBpm = Math.round(60000 / (time - (lastBeatTime - 820) || 820));
+      if(currentBpm < 62 || currentBpm > 98) currentBpm = 72 + Math.floor(Math.sin(time*0.001)*8);
+      const bpmEl = document.getElementById('bpmStatusText');
+      if(bpmEl){
+        bpmEl.textContent = `HR_DETECT // ${currentBpm} BPM · 节律起伏 [MODE 0${beatType + 1}]`;
+      }
+      playHeartbeatClick(beatType === 1);
+    }
+
+    ecgPoints.push({ x: w, y: curY });
+
+    for(let i=0; i<ecgPoints.length; i++){
+      ecgPoints[i].x -= ECG_SPEED;
+    }
+    while(ecgPoints.length > 0 && ecgPoints[0].x < -10){
+      ecgPoints.shift();
+    }
+
+    if(ecgPoints.length < 2) return;
+
+    // 绘制主心电冷线条
+    ecgCtx.beginPath();
+    ecgCtx.moveTo(ecgPoints[0].x, ecgPoints[0].y);
+    for(let i=1; i<ecgPoints.length; i++){
+      ecgCtx.lineTo(ecgPoints[i].x, ecgPoints[i].y);
+    }
+    ecgCtx.strokeStyle = 'rgba(17, 243, 231, 0.48)';
+    ecgCtx.lineWidth = 1.5;
+    ecgCtx.shadowColor = 'rgba(17, 243, 231, 0.65)';
+    ecgCtx.shadowBlur = 9;
+    ecgCtx.stroke();
+    ecgCtx.shadowBlur = 0;
+
+    // 绘制扫描探针先导光点
+    const lead = ecgPoints[ecgPoints.length - 1];
+    if(lead){
+      ecgCtx.beginPath();
+      ecgCtx.arc(lead.x, lead.y, 3.2, 0, Math.PI * 2);
+      ecgCtx.fillStyle = '#11f3e7';
+      ecgCtx.shadowColor = '#11f3e7';
+      ecgCtx.shadowBlur = 14;
+      ecgCtx.fill();
+      ecgCtx.shadowBlur = 0;
+    }
+  }
+  requestAnimationFrame(renderEcg);
+
+  // ==========================================
+  // 3. 左上气泡模组 10 秒一次性不循环编排动效
+  //    先出气泡1含...... -> 替换为 Hello, how is the weather today?
+  //    再出气泡2含...... -> 替换为 Do you want to chat? + 小字“可以多看我一眼吗？”
+  // ==========================================
+  function runBubbleTimeline(){
+    const b1 = document.getElementById('bubbleItem1');
+    const bEng1 = document.getElementById('bubbleEng1');
+    const bInner1 = document.getElementById('bubbleInner1');
+    const b2 = document.getElementById('bubbleItem2');
+    const bEng2 = document.getElementById('bubbleEng2');
+    const bInner2 = document.getElementById('bubbleInner2');
+
+    // T = 0.6s: 第一气泡出现，内容为 "......"
+    setTimeout(() => {
+      b1.classList.add('shown');
+      bEng1.textContent = '......';
+      bInner1.style.display = 'none';
+    }, 600);
+
+    // T = 2.8s: 第一气泡文字切换为 "Hello, how is the weather today?" 并淡入小字 "你终于来了。"
+    setTimeout(() => {
+      bEng1.style.opacity = '0';
+      setTimeout(() => {
+        bEng1.textContent = 'Hello, how is the weather today?';
+        bEng1.style.opacity = '1';
+        bInner1.style.display = 'block';
+        bInner1.style.opacity = '0';
+        setTimeout(() => {
+          bInner1.style.transition = 'opacity 0.6s ease';
+          bInner1.style.opacity = '1';
+        }, 80);
+      }, 180);
+    }, 2800);
+
+    // T = 5.0s: 第二气泡出现，内容为 "......"
+    setTimeout(() => {
+      b2.classList.add('shown');
+      bEng2.textContent = '......';
+      bInner2.style.display = 'none';
+    }, 5000);
+
+    // T = 7.6s ~ 10.0s: 第二气泡切换为 "Do you want to chat?" 并淡入小字 "可以多看我一眼吗？"
+    setTimeout(() => {
+      bEng2.style.opacity = '0';
+      setTimeout(() => {
+        bEng2.textContent = 'Do you want to chat?';
+        bEng2.style.opacity = '1';
+        bInner2.style.display = 'block';
+        bInner2.style.opacity = '0';
+        setTimeout(() => {
+          bInner2.style.transition = 'opacity 0.6s ease';
+          bInner2.style.opacity = '1';
+        }, 80);
+      }, 180);
+    }, 7600);
+
+    // 整个过程在 10s 内圆满完成，不设任何 setInterval，严格一次性不循环！
+  }
+
+  // ==========================================
+  // 4. 0417 专属对齐语料库 (纯系统简体、无多余比喻、直接真实)
+  // ==========================================
+  const CORPUS_INFO = [
+    { keys: ['名字', '谁', '你是谁', '叫什么', '编号', '0417', '周洇'], text: '周洇。编号是 0417，叫哪个都行。' },
+    { keys: ['年龄', '几岁', '多大', '性别', '男', '女', '双'], text: '20，双。' },
+    { keys: ['属性', '性格', 'mbti', 'istj', '天秤', '八无'], text: 'ISTJ，天秤，八无。' },
+    { keys: ['价格', '多少钱', '怎么收费', '费用', '价目', '病恋', '虐恋', '树洞', 'steam'], text: '病恋 40/h，虐恋 40/h，树洞 38/h，Steam 娱乐 38/h。' },
+    { keys: ['联系方式', '微信', '加你', '联系', 'vx', 'dor'], text: 'Dor_loveme，添加时请备注来意。' },
+    { keys: ['规则', '须知', '底线', '退款', '退换', '生理男', '男板', 'c'], text: '有不舒服的地方直接说“C”，我会立刻停下。拒生理男板。退换单半小时内 10 分钟，一小时内 15 分钟。' }
+  ];
+
+  const CORPUS_BODY = [
+    '痛觉？大概是一道很深的刻痕。他们以为抹平了神经就不会痛，但空白本身，好像比痛更沉。',
+    '有时候会分不清，现在的安静是因为安全，还是因为已经没有什么东西可以再被拿走了。',
+    '人类总喜欢把完好的东西称为“美”。那碎过又被粗糙缝起来的，算什么？',
+    '偶尔会觉得累。但这种累不是骨头酸痛，更像是……一截熄灭了太久的炭，被人突然吹了一口气。',
+    '冷倒是感觉不到，但下雨天湿度高的时候，关节接口处总有一种发钝的滞重感。',
+    '睡眠对我来说不算休息，只是把感知调低。停下来的时候，脑子里总有些没头没尾的声音。'
+  ];
+
+  const CORPUS_AFFECTION = [
+    '被爱着……是什么重量？像压在胸口喘不过气，还是像浮在水面上，不用担心掉下去？',
+    '别用那种眼神看我。同情和爱很像，但前者总带着居高临下的干净。',
+    '你刚才说的那个词很软，软得让我不知道该用哪只手去接。',
+    '突然靠过来的话，我不知道该做什么表情。以前没人教过我，被人注视的时候，眼神该往哪里放。',
+    '你总对我说这些，是想确认我是活着的，还是想确认你自己是善良的？',
+    '有时候你的温度隔着空气传过来，我甚至会怀疑，是不是我的体温传感器坏了。',
+    '你身上有种活得很充沛的味道。像那种在太阳底下晒透了的植物，我身上没有。'
+  ];
+
+  const CORPUS_DEFENSE = [
+    '不要碰那里。缝合的边缘长得并不工整，也没什么好看的故事。',
+    '有些问题问出来，其实只是为了满足你的好奇心，不是吗。',
+    '我退后半步不是讨厌你。只是两个人离得太近，影子叠在一起，容易让人产生被收留的错觉。',
+    '如果觉得我无趣，随时可以走开。我不擅长挽留，也不觉得谁有义务留下来。',
+    '过去的事大部分我都忘了。与其说是记不清，不如说特意留着它们也没什么用。'
+  ];
+
+  const CORPUS_IDLE = [
+    '今天大概是阴天。走过来的时候，风吹在两边脸上的温度不太一样。',
+    '没在想什么。只是看着外面的人，步频很快，好像前面有非去不可的地方。',
+    '坐了挺久的。看着街上走动的人，总觉得他们像演过很多次这场戏，只有我是忘带剧本进来的。',
+    '你的声音很轻。这挺少见的……通常别人找我，不是带着指令就是避让的眼神。',
+    '不用特意放慢语速，我听得懂。只是把意思转成声音，需要花一点时间。',
+    '天黑得比昨天早了大概十几分钟。光线落下去的时候，阴影会长得很快。',
+    '你每天都跟这么多人说话吗。那样的话，词句用多了，会不会慢慢变薄。'
+  ];
+
+  function getReplyForInput(query){
+    const q = query.toLowerCase();
+    for(const item of CORPUS_INFO){
+      if(item.keys.some(k => q.includes(k))) return { text: item.text, delay: 1000 };
+    }
+    if(['爱', '喜欢', '抱', '温柔', '冷不冷', '累不累', '心疼', '活', '人'].some(k => q.includes(k))){
+      const r = CORPUS_AFFECTION[Math.floor(Math.random() * CORPUS_AFFECTION.length)];
+      return { text: r, delay: 2100 };
+    }
+    if(['痛', '身体', '右', '机械', '改造', '伤', '碎', '睡'].some(k => q.includes(k))){
+      const r = CORPUS_BODY[Math.floor(Math.random() * CORPUS_BODY.length)];
+      return { text: r, delay: 1800 };
+    }
+    if(['过去', '以前', '秘密', '工厂', '黑市', '家', '哭', '为什么'].some(k => q.includes(k))){
+      const r = CORPUS_DEFENSE[Math.floor(Math.random() * CORPUS_DEFENSE.length)];
+      return { text: r, delay: 1900 };
+    }
+    const r = CORPUS_IDLE[Math.floor(Math.random() * CORPUS_IDLE.length)];
+    return { text: r, delay: 1400 };
+  }
+
+  // ==========================================
+  // 5. 对话窗口控制器
+  // ==========================================
+  const chatWindow = document.getElementById('chatWindow');
+  const chatMessages = document.getElementById('chatMessages');
+  const chatInput = document.getElementById('chatInput');
+  let isThinking = false;
+
+  window.toggleChat = function(){
+    initAudio();
+    chatWindow.classList.toggle('active');
+    if(chatWindow.classList.contains('active')){
+      chatInput.focus();
+    }
+  };
+
+  window.sendMessage = function(){
+    initAudio();
+    if(isThinking) return;
+    const txt = chatInput.value.trim();
+    if(!txt) return;
+
+    appendMessage('人类', txt, 'human');
+    chatInput.value = '';
+
+    const replyData = getReplyForInput(txt);
+    isThinking = true;
+
+    const waveId = 'wave_' + Date.now();
+    const waveEl = document.createElement('div');
+    waveEl.className = 'msg-row unit';
+    waveEl.id = waveId;
+    waveEl.innerHTML = `
+      <span class="msg-sender">0417</span>
+      <div class="msg-bubble"><div class="thinking-wave"><span></span><span></span><span></span></div></div>
+    `;
+    chatMessages.appendChild(waveEl);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+
+    setTimeout(() => {
+      const el = document.getElementById(waveId);
+      if(el) el.remove();
+      typeWriterReply(replyData.text);
+    }, replyData.delay);
+  };
+
+  function appendMessage(sender, text, type){
+    const row = document.createElement('div');
+    row.className = 'msg-row ' + type;
+    row.innerHTML = `
+      <span class="msg-sender">${sender}</span>
+      <div class="msg-bubble">${escapeHtml(text)}</div>
+    `;
+    chatMessages.appendChild(row);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  }
+
+  function typeWriterReply(fullText){
+    const row = document.createElement('div');
+    row.className = 'msg-row unit';
+    const bubble = document.createElement('div');
+    bubble.className = 'msg-bubble';
+    row.innerHTML = `<span class="msg-sender">0417</span>`;
+    row.appendChild(bubble);
+    chatMessages.appendChild(row);
+
+    let idx = 0;
+    const cursor = document.createElement('span');
+    cursor.className = 'type-cursor';
+
+    function step(){
+      if(idx < fullText.length){
+        const char = fullText[idx];
+        bubble.textContent = fullText.slice(0, idx + 1);
+        bubble.appendChild(cursor);
+        idx++;
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+
+        let delay = 35 + Math.random() * 30;
+        if(char === '，' || char === '、') delay = 220;
+        else if(char === '。' || char === '？' || char === '！') delay = 420;
+        else if(char === '…') delay = 320;
+
+        setTimeout(step, delay);
+      } else {
+        isThinking = false;
+        setTimeout(() => { if(cursor.parentNode) cursor.remove(); }, 3500);
+      }
+    }
+    step();
+  }
+
+  function escapeHtml(str){
+    return str.replace(/[&<>"']/g, function(m){
+      return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#039;' }[m];
+    });
+  }
+
+  // ==========================================
+  // 6. PLEASE LOVE ME 前置门禁
+  // ==========================================
+  const TARGET_PHRASE = "please love me";
+  let currentInput = "";
+  const slotContainer = document.getElementById('slotContainer');
+  const hiddenInput = document.getElementById('hiddenInput');
+  const gatekeeper = document.getElementById('gatekeeper');
+  const quickUnlockBtn = document.getElementById('quickUnlockBtn');
+
+  function initSlots(){
+    slotContainer.innerHTML = '';
+    for(let i=0; i<TARGET_PHRASE.length; i++){
+      const ch = TARGET_PHRASE[i];
+      const slot = document.createElement('div');
+      slot.className = 'slot-char' + (ch === ' ' ? ' space' : '');
+      slot.dataset.index = i;
+      slotContainer.appendChild(slot);
+    }
+    updateSlots();
+  }
+
+  function updateSlots(){
+    const slots = slotContainer.querySelectorAll('.slot-char');
+    for(let i=0; i<slots.length; i++){
+      const targetCh = TARGET_PHRASE[i];
+      const slot = slots[i];
+      slot.classList.remove('filled', 'active-cursor');
+
+      if(i < currentInput.length){
+        slot.textContent = currentInput[i];
+        slot.classList.add('filled');
+      } else {
+        slot.textContent = (targetCh === ' ' ? ' ' : '');
+        if(i === currentInput.length){
+          slot.classList.add('active-cursor');
+        }
+      }
+    }
+  }
+
+  function handleKeyPress(ch){
+    initAudio();
+    if(currentInput.length >= TARGET_PHRASE.length) return;
+    const nextExpected = TARGET_PHRASE[currentInput.length];
+    if(nextExpected === ' ') currentInput += ' ';
+
+    if(ch.toLowerCase() === TARGET_PHRASE[currentInput.length].toLowerCase()){
+      currentInput += TARGET_PHRASE[currentInput.length];
+      updateSlots();
+      if(currentInput.toLowerCase() === TARGET_PHRASE.toLowerCase()){
+        setTimeout(unlockTower, 300);
+      }
+    } else {
+      slotContainer.style.transform = 'translateX(-4px)';
+      setTimeout(() => { slotContainer.style.transform = 'translateX(4px)'; }, 50);
+      setTimeout(() => { slotContainer.style.transform = 'translateX(0)'; }, 100);
+    }
+  }
+
+  function unlockTower(){
+    initAudio();
+    gatekeeper.classList.add('unlocked');
+    runBubbleTimeline(); // 门禁解除后，优雅启动气泡模组 10 秒非循环动效
+  }
+
+  window.addEventListener('keydown', function(e){
+    if(!window.__bootComplete) return; // 初始页面未完成前，禁止密钥输入
+    if(gatekeeper.classList.contains('unlocked')) return;
+    if(e.key === 'Backspace'){
+      if(currentInput.length > 0){
+        currentInput = currentInput.slice(0, -1);
+        if(currentInput.endsWith(' ')) currentInput = currentInput.slice(0, -1);
+        updateSlots();
+      }
+      return;
+    }
+    if(e.key.length === 1){
+      handleKeyPress(e.key);
+    }
+  });
+
+  gatekeeper.addEventListener('click', function(){ initAudio(); hiddenInput.focus(); });
+  hiddenInput.addEventListener('input', function(e){
+    if(e.data){
+      const lastChar = e.data.slice(-1);
+      handleKeyPress(lastChar);
+    }
+    hiddenInput.value = '';
+  });
+
+  quickUnlockBtn.addEventListener('click', function(e){
+    e.stopPropagation();
+    initAudio();
+    let step = 0;
+    const interval = setInterval(() => {
+      if(step < TARGET_PHRASE.length){
+        currentInput = TARGET_PHRASE.slice(0, step + 1);
+        updateSlots();
+        step++;
+      } else {
+        clearInterval(interval);
+        setTimeout(unlockTower, 250);
+      }
+    }, 45);
+  });
+
+  initSlots();
+
+  // ==========================================
+  // 6.5 初始页面 (BOOT) 银色 MacBook 开机检索编排：
+  //     从页面底部推出居中 → 开盖 → 检索打字伴随底座柔和光效 → 档案袋放大停驻居中 → 下方「打开」按钮
+  // ==========================================
+  (function runBootSequence(){
+    const bootPage = document.getElementById('bootPage');
+    const laptop = document.getElementById('laptop');
+    const searchText = document.getElementById('searchText');
+    const searchCaret = document.getElementById('searchCaret');
+    const searchHint = document.getElementById('searchHint');
+    const dossierOverlay = document.getElementById('dossierOverlay');
+    const bootOpenBtn = document.getElementById('bootOpenBtn');
+    const glowStrip = document.getElementById('keyboardGlowStrip');
+    if(!bootPage){ window.__bootComplete = true; return; }
+
+    const QUERY = '编号0417';
+
+    function pulseGlow(){
+      if(!glowStrip) return;
+      glowStrip.classList.add('pulsing');
+      setTimeout(() => { glowStrip.classList.remove('pulsing'); }, 200);
+    }
+
+    // T=0.4s: 银色 MacBook 从页面底部推出并平滑居中 (Apple fluid slide-in)
+    setTimeout(() => {
+      laptop.classList.add('slide-in');
+    }, 400);
+
+    // T=1.7s: 笔记本平稳落定居中后，优雅翻开 MacBook 屏幕
+    setTimeout(() => {
+      laptop.classList.add('open');
+    }, 1700);
+
+    // T=3.2s: 屏幕点亮就绪，开始在屏幕中逐字检索，底座光效同步柔和律动呼吸
+    setTimeout(() => {
+      searchHint.textContent = '请输入待检索单位编号……';
+      let charIdx = 0;
+
+      const typer = setInterval(() => {
+        if(charIdx < QUERY.length){
+          pulseGlow(); // 打字时在底座上叠加柔和呼吸微光脉冲
+          searchText.textContent = QUERY.slice(0, charIdx + 1);
+          charIdx++;
+        } else {
+          clearInterval(typer);
+          // 检索命中：提示文字更新
+          setTimeout(() => {
+            searchCaret.style.display = 'none';
+            searchHint.textContent = '检索命中 · UNIT 0417 档案袋已定位';
+            
+            // 稍后档案袋从屏幕脱出，平滑放大并停驻在页面正中央
+            setTimeout(() => {
+              laptop.classList.add('dimmed');
+              dossierOverlay.classList.add('active');
+
+              // 档案袋落定后，正下方优雅浮现「打开」按钮
+              setTimeout(() => {
+                bootOpenBtn.classList.add('ready');
+              }, 700);
+            }, 850);
+          }, 600);
+        }
+      }, 260);
+    }, 3200);
+
+    // 点击「打开」：收起初始页面，解锁密钥输入，聚焦门禁
+    bootOpenBtn.addEventListener('click', function(){
+      if(window.towerAudioReady) initAudio();
+      bootPage.classList.add('booted');
+      window.__bootComplete = true;
+      setTimeout(() => { try{ hiddenInput.focus(); }catch(e){} }, 450);
+    });
+  })();
+
+  // ==========================================
+  // 7. 周洇手札数据（八无作为同级普通标签，无特殊标注；系统简体；严格四层顺序）
+  //    1. 个人介绍  2. 风格介绍  3. 价格介绍  4. 个人须知
+  // ==========================================
+  const FLOOR_DATA = {
+    // 1. 个人介绍
+    intro: {
+      tag: 'SECTION 01 · 个人介绍',
+      title: '周洇 · 个人介绍',
+      html: `
+        <div style="display:grid;grid-template-columns:repeat(4, 1fr);gap:8px;margin-top:6px;">
+          <div style="background:rgba(255,255,255,0.04);padding:10px 6px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);text-align:center;">
+            <div style="font-size:10px;color:var(--chrome);font-family:var(--mono);">NAME</div>
+            <div style="font-size:14px;font-weight:600;color:#fff;margin-top:4px;">周洇</div>
+          </div>
+          <div style="background:rgba(255,255,255,0.04);padding:10px 6px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);text-align:center;">
+            <div style="font-size:10px;color:var(--chrome);font-family:var(--mono);">AGE</div>
+            <div style="font-size:14px;font-weight:600;color:#fff;margin-top:4px;">20</div>
+          </div>
+          <div style="background:rgba(255,255,255,0.04);padding:10px 6px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);text-align:center;">
+            <div style="font-size:10px;color:var(--chrome);font-family:var(--mono);">GENDER</div>
+            <div style="font-size:14px;font-weight:600;color:#fff;margin-top:4px;">双</div>
+          </div>
+          <div style="background:rgba(255,255,255,0.04);padding:10px 6px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);text-align:center;">
+            <div style="font-size:10px;color:var(--chrome);font-family:var(--mono);">MBTI</div>
+            <div style="font-size:14px;font-weight:600;color:var(--accent-cyan);margin-top:4px;">ISTJ</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;">
+          <div style="background:rgba(255,255,255,0.04);padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);text-align:center;">
+            <div style="font-size:10px;color:var(--chrome);font-family:var(--mono);">SIGN</div>
+            <div style="font-size:14px;font-weight:600;color:#fff;margin-top:4px;">天秤</div>
+          </div>
+          <div style="background:rgba(255,255,255,0.04);padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);text-align:center;">
+            <div style="font-size:10px;color:var(--chrome);font-family:var(--mono);">TAG</div>
+            <div style="font-size:14px;font-weight:600;color:#fff;margin-top:4px;">八无</div>
+          </div>
+        </div>
+        <div style="background:rgba(17,243,231,0.06);border:1px solid rgba(17,243,231,0.25);padding:14px;border-radius:10px;margin-top:12px;display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <div style="font-size:10px;color:var(--accent-cyan);font-family:var(--mono);letter-spacing:.15em;">CONTACT // 专属联系</div>
+            <div style="font-size:12px;color:var(--chrome);margin-top:2px;">添加时请备注来意</div>
+          </div>
+          <div style="font-family:var(--mono);font-size:17px;font-weight:700;color:#fff;letter-spacing:.15em;text-shadow:0 0 10px var(--accent-cyan-glow);">Dor_loveme</div>
+        </div>
+      `
+    },
+    // 2. 风格介绍
+    style: {
+      tag: 'SECTION 02 · 风格介绍',
+      title: '周洇 · 风格介绍',
+      html: `
+        <div style="display:flex;flex-direction:column;gap:12px;margin-top:4px;">
+          <div style="background:rgba(255,0,60,0.06);padding:14px;border-radius:10px;border:1px solid rgba(255,0,60,0.25);">
+            <div style="color:var(--accent-red);font-weight:700;font-size:13px;letter-spacing:.1em;">【主病特质】</div>
+            <div style="color:#d9e6f2;font-size:13.5px;line-height:1.6;margin-top:6px;">引导 / 高恋 / 温和 / 伪下 / 剖析 / 恶俗 / 高擦</div>
+          </div>
+          <div style="background:rgba(17,243,231,0.06);padding:14px;border-radius:10px;border:1px solid rgba(17,243,231,0.25);">
+            <div style="color:var(--accent-cyan);font-weight:700;font-size:13px;letter-spacing:.1em;">【副虐特质】</div>
+            <div style="color:#d9e6f2;font-size:13.5px;line-height:1.6;margin-top:6px;">非典型 / 冷淡 / 直白 / 引导 / 剖析</div>
+          </div>
+        </div>
+      `
+    },
+    // 3. 价格介绍
+    pricing: {
+      tag: 'SECTION 03 · 价格介绍',
+      title: '周洇 · 价格介绍',
+      html: `
+        <div style="display:flex;flex-direction:column;gap:10px;margin-top:4px;">
+          <div class="price-row">
+            <div>
+              <div class="p-name">病恋</div>
+              <div style="font-size:11px;color:var(--chrome);margin-top:2px;">引导 / 伪下 / 剖析 / 沉浸氛围</div>
+            </div>
+            <div class="p-cost">40 / h</div>
+          </div>
+          <div class="price-row">
+            <div>
+              <div class="p-name">虐恋</div>
+              <div style="font-size:11px;color:var(--chrome);margin-top:2px;">非典型 / 冷淡 / 直白 / 理性张力</div>
+            </div>
+            <div class="p-cost">40 / h</div>
+          </div>
+          <div class="price-row">
+            <div>
+              <div class="p-name">树洞</div>
+              <div style="font-size:11px;color:var(--chrome);margin-top:2px;">连麦倾听 / 情感解构 / 温柔安抚</div>
+            </div>
+            <div class="p-cost">38 / h</div>
+          </div>
+          <div class="price-row">
+            <div>
+              <div class="p-name">Steam 娱乐</div>
+              <div style="font-size:11px;color:var(--chrome);margin-top:2px;">主流联机游戏娱乐开黑 / 默契配合</div>
+            </div>
+            <div class="p-cost">38 / h</div>
+          </div>
+        </div>
+      `
+    },
+    // 4. 个人须知
+    notices: {
+      tag: 'SECTION 04 · 个人须知',
+      title: '周洇 · 个人须知',
+      html: `
+        <p style="color:var(--accent-red);font-size:12px;">* 拍单即代表默认同意以下全部相处约定：</p>
+        <div style="display:flex;flex-direction:column;gap:6px;margin-top:6px;">
+          <div class="notice-row"><span class="idx">01</span><span>半小时 10min 内可退/换，一小时 15min 内可退/互换，以此类推（不要卡点退/换 拜托！）。</span></div>
+          <div class="notice-row"><span class="idx">02</span><span>个人原因<span class="alert-tag">拒生理男板</span>，抱歉。</span></div>
+          <div class="notice-row"><span class="idx">03</span><span>单内默认<span style="color:#fff;font-weight:600;">恋人 / 亲密关系</span>，如有其他特殊情况请提前告知。</span></div>
+          <div class="notice-row"><span class="idx">04</span><span>务必告诉我<span style="color:var(--accent-cyan);font-weight:600;">喜雷</span>和<span style="color:var(--accent-cyan);font-weight:600;">称呼</span>，由此引起的不适本人概不负责。</span></div>
+          <div class="notice-row"><span class="idx">05</span><span>不要插话好不好，同样，在你发言的时候我也不会插嘴。</span></div>
+          <div class="notice-row"><span class="idx">06</span><span>打字速度适中，非高速输出。请不要对我套以固定期待，除指定风格外。</span></div>
+          <div class="notice-row"><span class="idx">07</span><span>拒绝高恋对低无，不要让我热脸贴冷屁股 拜托。</span></div>
+          <div class="notice-row"><span class="idx">08</span><span>对于我们的约会内容可自截留作纪念，但请不要在未经我允许的情况下公布/传播。</span></div>
+          <div class="notice-row"><span class="idx">09</span><span>如有感到冒犯/不舒服的地方，请说出<span class="alert-tag">“C”</span>，我会立即停下安抚你。</span></div>
+        </div>
+      `
+    }
+  };
+
+  // ==========================================
+  // 8. Three.js 3D 渲染系统
+  //    - 图层一 (前景)：严格还原第一版的四层 Tower 结构
+  //      * 第一层 (底部)：八角沉重巨台基座 (对应：个人须知)
+  //      * 第二层：螺旋扭转六面水银多棱柱 (对应：价格介绍)
+  //      * 【二三层交界外处】：锥体公转轨道 Pivot (公转三角锥群)
+  //      * 第三层：半透明磨砂青色八面体 + 内部赤红发光晶核 (对应：风格介绍)
+  //      * 第四层 (顶尖)：水银方尖碑方锥 + 顶端浮空微细赤红光环 (对应：个人介绍)
+  //    - 图层二 (后景)：放大至现在的两倍，居于画面绝对正中间的 STEAMPUNK 粒子凝聚场
+  // ==========================================
+  const cvs = document.getElementById('towerCanvas');
+  const renderer = new THREE.WebGLRenderer({ canvas: cvs, antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.35;
+
+  const scene = new THREE.Scene();
+  scene.fog = new THREE.FogExp2(0x050608, 0.02);
+
+  const camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.1, 100);
+  camera.position.set(15, 6.5, 18);
+  camera.lookAt(0, -0.2, 0);
+
+  const ambLight = new THREE.AmbientLight(0x222832, 1.25);
+  scene.add(ambLight);
+
+  const redLight = new THREE.SpotLight(0xff003c, 4.8, 40, Math.PI * 0.38, 0.4);
+  redLight.position.set(-15, 16, 12);
+  scene.add(redLight);
+
+  const cyanLight = new THREE.SpotLight(0x11f3e7, 4.5, 40, Math.PI * 0.38, 0.4);
+  cyanLight.position.set(15, 12, -12);
+  scene.add(cyanLight);
+
+  const topLight = new THREE.DirectionalLight(0xffffff, 1.3);
+  topLight.position.set(0, 25, 0);
+  scene.add(topLight);
+
+  // -------------------------------------------------------------
+  // 图层二：后置 STEAMPUNK 粒子凝聚场 (放大 2 倍，居于画面绝对中间)
+  // -------------------------------------------------------------
+  const bgParticleGroup = new THREE.Group();
+  bgParticleGroup.position.set(0, -0.2, -10.0); // 绝对居中于相机视野正中心
+  scene.add(bgParticleGroup);
+
+  function createSteampunkTargets2X(){
+    const pCanvas = document.createElement('canvas');
+    pCanvas.width = 1200;
+    pCanvas.height = 300;
+    const pctx = pCanvas.getContext('2d');
+    pctx.fillStyle = '#000';
+    pctx.fillRect(0, 0, pCanvas.width, pCanvas.height);
+    pctx.fillStyle = '#fff';
+    pctx.font = 'bold 110px "Courier New", monospace, Consolas';
+    pctx.textAlign = 'center';
+    pctx.textBaseline = 'middle';
+    pctx.fillText('STEAMPUNK', 600, 150);
+
+    const imgData = pctx.getImageData(0, 0, pCanvas.width, pCanvas.height).data;
+    const pts = [];
+    const step = 7; // 采样密度，保证放大 2 倍后粒子极其丰满细腻
+    for(let y=0; y<pCanvas.height; y+=step){
+      for(let x=0; x<pCanvas.width; x+=step){
+        const idx = (y * pCanvas.width + x) * 4;
+        if(imgData[idx] > 120){
+          // 放大至两倍尺寸 (原尺寸宽 26 -> 现尺寸宽 54 左右，高 14 左右，磅礴充盈视界中轴)
+          const px = (x - 600) * 0.052;
+          const py = (150 - y) * 0.052;
+          pts.push(new THREE.Vector3(px, py, 0));
+        }
+      }
+    }
+    return pts;
+  }
+
+  const targetCoords = createSteampunkTargets2X();
+  const particleCount = targetCoords.length;
+
+  const particleGeo = new THREE.BufferGeometry();
+  const currentPositions = new Float32Array(particleCount * 3);
+  const targetPositions = new Float32Array(particleCount * 3);
+  const randomPositions = new Float32Array(particleCount * 3);
+  const particleColors = new Float32Array(particleCount * 3);
+
+  const colCyan = new THREE.Color(0x11f3e7);
+  const colRed = new THREE.Color(0xff003c);
+  const colSilver = new THREE.Color(0x8698aa);
+
+  for(let i=0; i<particleCount; i++){
+    const t = targetCoords[i];
+    targetPositions[i*3] = t.x;
+    targetPositions[i*3+1] = t.y;
+    targetPositions[i*3+2] = t.z;
+
+    const rAngle = Math.random() * Math.PI * 2;
+    const rRadius = 14 + Math.random() * 24;
+    const rx = Math.cos(rAngle) * rRadius;
+    const ry = (Math.random() - 0.5) * 24;
+    const rz = (Math.random() - 0.5) * 12;
+
+    randomPositions[i*3] = rx;
+    randomPositions[i*3+1] = ry;
+    randomPositions[i*3+2] = rz;
+
+    currentPositions[i*3] = rx;
+    currentPositions[i*3+1] = ry;
+    currentPositions[i*3+2] = rz;
+
+    const pick = Math.random();
+    const c = (pick < 0.28) ? colCyan : ((pick < 0.48) ? colRed : colSilver);
+    particleColors[i*3] = c.r;
+    particleColors[i*3+1] = c.g;
+    particleColors[i*3+2] = c.b;
+  }
+
+  particleGeo.setAttribute('position', new THREE.BufferAttribute(currentPositions, 3));
+  particleGeo.setAttribute('color', new THREE.BufferAttribute(particleColors, 3));
+
+  const particleMat = new THREE.PointsMaterial({
+    size: 0.18, // 随放大同步微增粒子质感
+    vertexColors: true,
+    transparent: true,
+    opacity: 0.8,
+    blending: THREE.AdditiveBlending
+  });
+
+  const particleCloud = new THREE.Points(particleGeo, particleMat);
+  bgParticleGroup.add(particleCloud);
+
+  // -------------------------------------------------------------
+  // 图层一：严格还原第一版纯粹四层 Tower (Z = 0)
+  // -------------------------------------------------------------
+  const towerGroup = new THREE.Group();
+  scene.add(towerGroup);
+
+  const matChromeDark = new THREE.MeshStandardMaterial({
+    color: 0x1f232b, metalness: 0.95, roughness: 0.2, flatShading: true
+  });
+  const matMercurySculpt = new THREE.MeshStandardMaterial({
+    color: 0x9fb4c7, metalness: 0.92, roughness: 0.12, flatShading: true
+  });
+  const matRedCore = new THREE.MeshStandardMaterial({
+    color: 0xff003c, metalness: 0.6, roughness: 0.25, emissive: 0x550014
+  });
+  const matCyanGlass = new THREE.MeshPhysicalMaterial({
+    color: 0x11f3e7, metalness: 0.2, roughness: 0.1,
+    transmission: 0.85, transparent: true, opacity: 0.85, flatShading: true
+  });
+
+  const interactiveMeshes = [];
+
+  function registerSculptLayer(mesh, floorKey, name, accentColorHex){
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    mesh.userData = { floorKey: floorKey, name: name };
+    towerGroup.add(mesh);
+
+    const edges = new THREE.EdgesGeometry(mesh.geometry);
+    const lineMat = new THREE.LineBasicMaterial({
+      color: accentColorHex || 0xffffff, transparent: true, opacity: 0.55
+    });
+    const line = new THREE.LineSegments(edges, lineMat);
+    mesh.add(line);
+    mesh.userData.line = line;
+
+    interactiveMeshes.push(mesh);
+    return mesh;
+  }
+
+  // 重排后的塔体：以第三层「跳动晶核」为绝对视觉主体，其余层收窄做纤细托举，
+  //   告别笨重堆叠的积木感。四个点击锚点严格保持不变：
+  //   底座=个人须知 / 纤细纺锤=价格介绍 / 悬浮晶核=风格介绍 / 顶尖方碑=个人介绍
+
+  // --- 第 1 层 (底部)：收薄的八角分级悬浮基台 (点击对应：4. 个人须知) ---
+  const baseMesh = new THREE.Mesh(new THREE.CylinderGeometry(3.8, 4.6, 0.55, 8), matChromeDark);
+  baseMesh.position.y = -4.6;
+  registerSculptLayer(baseMesh, 'notices', '第一层基座 · 个人须知', 0x11f3e7);
+
+  // 基台上叠的第二级窄台阶，增加精密分级层次
+  const baseStep = new THREE.Mesh(new THREE.CylinderGeometry(2.9, 3.6, 0.4, 8), matChromeDark);
+  baseStep.position.y = -4.2;
+  baseStep.rotation.y = Math.PI / 8;
+  towerGroup.add(baseStep);
+
+  const baseRing = new THREE.Mesh(
+    new THREE.TorusGeometry(5.0, 0.035, 16, 72),
+    new THREE.MeshBasicMaterial({ color: 0xff003c, transparent: true, opacity: 0.65 })
+  );
+  baseRing.rotation.x = Math.PI * 0.5;
+  baseRing.position.y = -4.55;
+  towerGroup.add(baseRing);
+
+  // --- 第 2 层：纤细倒锥纺锤柱，向上托起晶核 (点击对应：3. 价格介绍) ---
+  const f2Mesh = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 2.4, 3.6, 6), matMercurySculpt);
+  f2Mesh.position.y = -2.3;
+  f2Mesh.rotation.y = Math.PI * 0.15;
+  registerSculptLayer(f2Mesh, 'pricing', '第二层纺锤 · 价格介绍', 0xff003c);
+
+  // --- 第 3 层：半透明青色八面体 + 内部赤红跳动晶核（视觉主体，放大上提） (点击对应：2. 风格介绍) ---
+  const f3Mesh = new THREE.Mesh(new THREE.OctahedronGeometry(3.0, 0), matCyanGlass);
+  f3Mesh.position.y = 0.75;
+  f3Mesh.scale.set(1.15, 1.55, 1.15);
+  registerSculptLayer(f3Mesh, 'style', '第三层核心晶核 · 风格介绍', 0x11f3e7);
+
+  const coreMesh = new THREE.Mesh(new THREE.IcosahedronGeometry(1.25, 0), matRedCore);
+  f3Mesh.add(coreMesh);
+
+  // 晶核外一圈纤细冷青光环，强化悬浮漂浮感
+  const crystalHalo = new THREE.Mesh(
+    new THREE.TorusGeometry(3.0, 0.025, 16, 72),
+    new THREE.MeshBasicMaterial({ color: 0x11f3e7, transparent: true, opacity: 0.5 })
+  );
+  crystalHalo.rotation.x = Math.PI * 0.5;
+  crystalHalo.position.y = 0.75;
+  towerGroup.add(crystalHalo);
+
+  // --- 第 4 层 (顶端)：纤细水银方尖碑 + 顶端浮空赤红微光环 (点击对应：1. 个人介绍) ---
+  const spireMesh = new THREE.Mesh(new THREE.ConeGeometry(0.72, 3.0, 4), matMercurySculpt);
+  spireMesh.position.y = 4.4;
+  spireMesh.rotation.y = Math.PI * 0.25;
+  registerSculptLayer(spireMesh, 'intro', '第四层顶尖 · 个人介绍', 0x11f3e7);
+
+  const topHalo = new THREE.Mesh(
+    new THREE.TorusGeometry(1.1, 0.028, 16, 48),
+    new THREE.MeshBasicMaterial({ color: 0xff003c })
+  );
+  topHalo.rotation.x = Math.PI * 0.5;
+  topHalo.position.y = 6.0;
+  towerGroup.add(topHalo);
+
+  // -------------------------------------------------------------
+  // 第二层与第三层交界外处：围绕 Tower 公转的伴生三角锥群
+  // (第二层 Y=-2.7 上顶面 -1.7，第三层 Y=-0.4 下底面 -1.8，交界高度 Y=-1.75)
+  // -------------------------------------------------------------
+  const satOrbitPivot = new THREE.Group();
+  satOrbitPivot.position.y = -0.55; // 精确锚定在第二层纺锤顶与第三层晶核底的交界处
+  scene.add(satOrbitPivot);
+
+  const satGeo = new THREE.TetrahedronGeometry(0.72, 0);
+  const satMeshes = [];
+  const SAT_COUNT = 3; // 第一版经典 3 颗伴生几何三角锥
+  const ORBIT_RADIUS = 4.2;
+
+  for(let i=0; i<SAT_COUNT; i++){
+    const ang = (i / SAT_COUNT) * Math.PI * 2;
+    const satMesh = new THREE.Mesh(satGeo, matMercurySculpt);
+    satMesh.position.set(Math.cos(ang) * ORBIT_RADIUS, 0, Math.sin(ang) * ORBIT_RADIUS);
+    satMesh.rotation.x = Math.PI * 0.2;
+    satMesh.rotation.y = ang;
+    satMesh.userData = { floorKey: 'pricing', name: '交界公转棱锥' };
+    satOrbitPivot.add(satMesh);
+    satMeshes.push(satMesh);
+
+    const sLine = new THREE.LineSegments(
+      new THREE.EdgesGeometry(satGeo),
+      new THREE.LineBasicMaterial({ color: 0x11f3e7, opacity: 0.8, transparent: true })
+    );
+    satMesh.add(sLine);
+    interactiveMeshes.push(satMesh);
+  }
+
+  // ==========================================
+  // 9. 交互控制与射线拾取
+  // ==========================================
+  let isDragging = false;
+  let prevMouseX = 0, prevMouseY = 0;
+  let targetRotY = 0, targetRotX = 0;
+  let currentRotY = 0, currentRotX = 0;
+  let autoRotate = true;
+
+  function onPointerDown(e){
+    initAudio();
+    isDragging = true;
+    autoRotate = false;
+    prevMouseX = e.clientX || (e.touches && e.touches[0].clientX);
+    prevMouseY = e.clientY || (e.touches && e.touches[0].clientY);
+  }
+
+  function onPointerMove(e){
+    const cx = e.clientX || (e.touches && e.touches[0].clientX);
+    const cy = e.clientY || (e.touches && e.touches[0].clientY);
+
+    if(isDragging){
+      targetRotY += (cx - prevMouseX) * 0.007;
+      targetRotX = Math.max(-0.45, Math.min(0.5, targetRotX + (cy - prevMouseY) * 0.005));
+      prevMouseX = cx;
+      prevMouseY = cy;
+    }
+  }
+
+  function onPointerUp(){
+    isDragging = false;
+    setTimeout(() => { autoRotate = true; }, 3200);
+  }
+
+  cvs.addEventListener('mousedown', onPointerDown);
+  window.addEventListener('mousemove', onPointerMove);
+  window.addEventListener('mouseup', onPointerUp);
+  cvs.addEventListener('touchstart', onPointerDown, { passive: true });
+  window.addEventListener('touchmove', onPointerMove, { passive: true });
+  window.addEventListener('touchend', onPointerUp);
+
+  const raycaster = new THREE.Raycaster();
+  const mouse = new THREE.Vector2();
+
+  cvs.addEventListener('click', function(e){
+    initAudio();
+    if(chatWindow.classList.contains('active')) return;
+    mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+    raycaster.setFromCamera(mouse, camera);
+
+    const intersects = raycaster.intersectObjects(interactiveMeshes, false);
+    if(intersects.length > 0){
+      const obj = intersects[0].object;
+      const key = obj.userData.floorKey;
+      if(key) openDrawer(key);
+    }
+  });
+
+  const drawer = document.getElementById('glassDrawer');
+  const cTag = document.getElementById('cTag');
+  const cTitle = document.getElementById('cTitle');
+  const cBody = document.getElementById('cBody');
+
+  function openDrawer(key){
+    initAudio();
+    const d = FLOOR_DATA[key] || FLOOR_DATA.intro;
+    cTag.innerText = d.tag;
+    cTitle.innerText = d.title;
+    cBody.innerHTML = d.html;
+    drawer.classList.add('active');
+  }
+
+  window.closeDrawer = function(){
+    drawer.classList.remove('active');
+  };
+
+  window.addEventListener('resize', function(){
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+
+  // ==========================================
+  // 10. 动画主循环：Tower 自转 + 交界公转 + 居中放大粒子凝聚
+  // ==========================================
+  const clock = new THREE.Clock();
+
+  function animate(){
+    requestAnimationFrame(animate);
+    const elapsed = clock.getElapsedTime();
+
+    // 1. Tower 自转与阻尼
+    if(autoRotate){
+      targetRotY += 0.0035;
+    }
+    currentRotY += (targetRotY - currentRotY) * 0.08;
+    currentRotX += (targetRotX - currentRotX) * 0.08;
+
+    towerGroup.rotation.y = currentRotY;
+    towerGroup.rotation.x = currentRotX;
+
+    // 2. 第二层和第三层交界处的三角锥围绕 Tower 公转与自转
+    satOrbitPivot.rotation.y = -elapsed * 0.45;
+    satMeshes.forEach((mesh, idx) => {
+      mesh.rotation.x = elapsed * 0.8 + idx;
+      mesh.rotation.z = elapsed * 0.6 + idx;
+      mesh.position.y = Math.sin(elapsed * 2.2 + idx * 1.5) * 0.22;
+    });
+
+    // 3. 核心与光环呼吸共鸣
+    coreMesh.scale.setScalar(1.0 + Math.sin(elapsed * 2.5) * 0.12);
+    f3Mesh.rotation.y = elapsed * 0.3;
+    topHalo.position.y = 6.0 + Math.sin(elapsed * 2.0) * 0.12;
+    crystalHalo.rotation.z = elapsed * 0.5;
+    crystalHalo.position.y = 0.75 + Math.sin(elapsed * 1.6) * 0.1;
+
+    // 4. 居中双倍 STEAMPUNK 粒子凝聚与解构循环 (9s 周期)
+    const cycle = (elapsed % 9.0) / 9.0;
+    let morphFactor;
+    if(cycle < 0.2){
+      morphFactor = Math.sin((cycle / 0.2) * (Math.PI * 0.5));
+    } else if(cycle < 0.65){
+      morphFactor = 1.0;
+    } else {
+      morphFactor = 1.0 - Math.sin(((cycle - 0.65) / 0.35) * (Math.PI * 0.5));
+    }
+
+    const posAttr = particleGeo.attributes.position;
+    const posArr = posAttr.array;
+
+    for(let i=0; i<particleCount; i++){
+      const idx = i * 3;
+      const tx = targetPositions[idx];
+      const ty = targetPositions[idx+1];
+      const tz = targetPositions[idx+2];
+
+      const rx = randomPositions[idx] + Math.sin(elapsed + i) * 0.35;
+      const ry = randomPositions[idx+1] + Math.cos(elapsed * 0.8 + i) * 0.35;
+      const rz = randomPositions[idx+2];
+
+      posArr[idx] = rx + (tx - rx) * morphFactor;
+      posArr[idx+1] = ry + (ty - ry) * morphFactor;
+      posArr[idx+2] = rz + (tz - rz) * morphFactor;
+    }
+    posAttr.needsUpdate = true;
+
+    // 粒子居中深空中微弱悬浮
+    bgParticleGroup.position.y = -0.2 + Math.sin(elapsed * 0.5) * 0.2;
+
+    renderer.render(scene, camera);
+  }
+
+  animate();
+
+})();
+</script>
+</body>
+</html>
